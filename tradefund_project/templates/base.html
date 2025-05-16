@@ -1,0 +1,145 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}TradeFund | Professional Trading Investment Platform{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://kit.fontawesome.com/YOUR_KIT_ID.js" crossorigin="anonymous"></script> <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lazysizes/5.3.2/lazysizes.min.js" async></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0a2540',
+                        secondary: '#00c7b1',
+                        accent: '#f7a600',
+                        dark: '#0a1f35',
+                        light: '#f5f9fc'
+                    },
+                    fontFamily: {
+                        sans: ['Montserrat', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: #f5f9fc; /* Default light background */
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #0a2540 0%, #0d3b66 100%);
+        }
+        .tier-card {
+            transition: all 0.3s ease;
+        }
+        .tier-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .chat-widget {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        /* Add animation styles from original landing page here if they are general */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        @keyframes shimmer { 0% { background-position: -100% 0; } 100% { background-position: 200% 0; } }
+        .animate-on-scroll { opacity: 0; transition: all 0.6s ease-out; }
+        .animate-on-scroll.fade-in.visible { opacity: 1; }
+        .animate-on-scroll.slide-up { transform: translateY(30px); }
+        .animate-on-scroll.slide-up.visible { opacity: 1; transform: translateY(0); }
+        .hover-item { transition: all 0.3s ease; padding-left: 0; padding-right: 0; border-radius: 6px; }
+        .hover-item:hover { background-color: rgba(0, 199, 177, 0.1); padding-left: 8px; padding-right: 8px; }
+        .hover-scale { transition: transform 0.3s ease; }
+        .hover-scale:hover { transform: scale(1.1); color: #00c7b1; }
+        .feature-icon { transition: transform 0.3s ease; }
+        .hover-item:hover .feature-icon { transform: scale(1.2) rotate(10deg); }
+        .animate-badge { position: relative; overflow: hidden; }
+        .animate-badge::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.8) 50%, rgba(255,255,255,0) 100%); transform: translateX(-100%); animation: shimmer 3s infinite; background-size: 200% 100%; }
+        .pulse-on-hover:hover { animation: pulse 1s infinite; }
+        /* Message styling for allauth */
+        .message-list { list-style: none; padding: 0; margin: 0 0 1rem 0; }
+        .message-list li { padding: 0.75rem 1.25rem; margin-bottom: 1rem; border: 1px solid transparent; border-radius: 0.25rem; }
+        .message-list li.success { color: #155724; background-color: #d4edda; border-color: #c3e6cb; }
+        .message-list li.error { color: #721c24; background-color: #f8d7da; border-color: #f5c6cb; }
+        .message-list li.info { color: #0c5460; background-color: #d1ecf1; border-color: #bee5eb; }
+        .message-list li.warning { color: #856404; background-color: #fff3cd; border-color: #ffeeba; }
+    </style>
+    {% block extra_head_css %}{% endblock %}
+</head>
+<body class="bg-light">
+
+    {% block body_content %}
+    {% endblock %}
+
+    <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
+    <script>
+        // Initialize Plyr (if you have video elements with class 'plyr__video-embed')
+        // const player = new Plyr('.plyr__video-embed');
+
+        // Scroll animation logic (from original landing page)
+        document.addEventListener('DOMContentLoaded', function() {
+            const animateElements = document.querySelectorAll('.animate-on-scroll');
+            function checkIfInView() {
+                animateElements.forEach(function(element) {
+                    const elementTop = element.getBoundingClientRect().top;
+                    const elementVisible = 150;
+                    const delay = element.getAttribute('data-delay') || 0;
+                    if (elementTop < window.innerHeight - elementVisible) {
+                        setTimeout(() => {
+                            element.classList.add('visible');
+                        }, parseInt(delay));
+                    }
+                });
+            }
+            checkIfInView();
+            window.addEventListener('scroll', checkIfInView);
+
+            // Enhanced hover effects for tier-cards
+            document.querySelectorAll('.tier-card').forEach(card => {
+                card.addEventListener('mousemove', (e) => {
+                    const rect = card.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    const centerX = rect.width / 2;
+                    const centerY = rect.height / 2;
+                    const angleX = (y - centerY) / 30; // Adjust for sensitivity
+                    const angleY = (centerX - x) / 30; // Adjust for sensitivity
+                    card.style.transform = `perspective(1000px) rotateX(${angleX}deg) rotateY(${angleY}deg) translateY(-5px)`; // Reduced translateY
+                    card.style.transition = 'transform 0.1s linear'; // Faster transition for mousemove
+                });
+                card.addEventListener('mouseleave', () => {
+                    card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+                    card.style.transition = 'transform 0.4s ease-out'; // Smoother transition back
+                });
+            });
+
+            // Scroll to sections smoothly when clicking on nav links
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    const href = this.getAttribute('href');
+                    if (href.startsWith("#") && href.length > 1) {
+                        const targetElement = document.querySelector(href);
+                        if (targetElement) {
+                            e.preventDefault();
+                            targetElement.scrollIntoView({
+                                behavior: 'smooth'
+                            });
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% block head_title %}{% endblock %} | TradeFund Account{% endblock %}
+
+{% block body_content %}
+<div class="min-h-screen flex flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-light">
+    <div class="max-w-md w-full space-y-8">
+        <div>
+            <a href="{% url 'landing:home' %}" class="flex justify-center">
+                <h1 class="text-3xl font-bold text-primary">TradeFund</h1>
+            </a>
+            <h2 class="mt-6 text-center text-2xl font-bold text-gray-900">
+                {% block page_title %}{% endblock %}
+            </h2>
+        </div>
+
+        {% if messages %}
+        <div class="my-4">
+            <ul class="message-list">
+                {% for message in messages %}
+                <li class="{{ message.tags }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        {% block content %}
+        {% endblock %}
+
+        <div class="mt-6 text-center text-sm text-gray-600">
+            <p>&copy; {% now "Y" %} TradeFund. All rights reserved.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+    {% block account_extra_js %}{% endblock %}
+{% endblock %}
