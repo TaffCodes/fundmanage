@@ -1,0 +1,56 @@
+{% extends "user_dashboard/base_user_dashboard.html" %}
+
+{% block user_dashboard_content %}
+<div class="bg-white p-6 shadow-lg rounded-lg">
+    <h1 class="text-2xl font-semibold text-primary mb-6">Account Settings</h1>
+    
+    <div class="space-y-4">
+        <div>
+            <a href="{% url 'user_dashboard:profile_update' %}" class="flex items-center justify-between p-4 bg-light hover:bg-gray-200 rounded-lg transition group">
+                <div>
+                    <h3 class="text-lg font-medium text-primary">Update Profile</h3>
+                    <p class="text-sm text-gray-600">Manage your personal information and contact details.</p>
+                </div>
+                <i class="fas fa-chevron-right text-gray-400 group-hover:text-secondary"></i>
+            </a>
+        </div>
+        <div>
+            <a href="{% url 'account_change_password' %}" class="flex items-center justify-between p-4 bg-light hover:bg-gray-200 rounded-lg transition group">
+                <div>
+                    <h3 class="text-lg font-medium text-primary">Change Password</h3>
+                    <p class="text-sm text-gray-600">Update your account password for security.</p>
+                </div>
+                <i class="fas fa-chevron-right text-gray-400 group-hover:text-secondary"></i>
+            </a>
+        </div>
+        <div>
+            <a href="{% url 'account_email' %}" class="flex items-center justify-between p-4 bg-light hover:bg-gray-200 rounded-lg transition group">
+                <div>
+                    <h3 class="text-lg font-medium text-primary">Manage Email Addresses</h3>
+                    <p class="text-sm text-gray-600">Add, remove, or change your primary email address.</p>
+                </div>
+                <i class="fas fa-chevron-right text-gray-400 group-hover:text-secondary"></i>
+            </a>
+        </div>
+        <hr class="my-4">
+        <div>
+            <a href="{% url 'user_dashboard:kyc' %}" class="flex items-center justify-between p-4 bg-light hover:bg-gray-200 rounded-lg transition group">
+                <div>
+                    <h3 class="text-lg font-medium text-primary">KYC Verification</h3>
+                    <p class="text-sm text-gray-600">Submit or check your identity verification status.</p>
+                </div>
+                <i class="fas fa-chevron-right text-gray-400 group-hover:text-secondary"></i>
+            </a>
+        </div>
+        <div>
+            <a href="{% url 'user_dashboard:notification_preferences' %}" class="flex items-center justify-between p-4 bg-light hover:bg-gray-200 rounded-lg transition group">
+                <div>
+                    <h3 class="text-lg font-medium text-primary">Notification Preferences</h3>
+                    <p class="text-sm text-gray-600">Manage your email and platform notification settings.</p>
+                </div>
+                <i class="fas fa-chevron-right text-gray-400 group-hover:text-secondary"></i>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

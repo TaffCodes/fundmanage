@@ -1,14 +1,15 @@
 {% extends "base.html" %}
 {% load i18n %}
+{% load static %}
 
-{% block title %}{% block head_title %}{% endblock %} | TradeFund Account{% endblock %}
+{% block title %}{% block head_title %}{% endblock %} | FTMOTrade Fund Account{% endblock %}
 
 {% block body_content %}
 <div class="min-h-screen flex flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-light">
     <div class="max-w-md w-full space-y-8">
         <div>
             <a href="{% url 'landing:home' %}" class="flex justify-center">
-                <h1 class="text-3xl font-bold text-primary">TradeFund</h1>
+                <h1 class="text-3xl font-bold text-primary">FTMOTrade Fund</h1>
             </a>
             <h2 class="mt-6 text-center text-2xl font-bold text-gray-900">
                 {% block page_title %}{% endblock %}
@@ -29,7 +30,7 @@
         {% endblock %}
 
         <div class="mt-6 text-center text-sm text-gray-600">
-            <p>&copy; {% now "Y" %} TradeFund. All rights reserved.</p>
+            <p>&copy; {% now "Y" %} FTMOTrade Fund. All rights reserved.</p>
         </div>
     </div>
 </div>

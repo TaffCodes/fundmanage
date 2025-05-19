@@ -1,0 +1,45 @@
+{% extends "staff_dashboard/base_dashboard.html" %}
+{% load humanize %}
+
+{% block dashboard_content %}
+<div class="bg-white p-6 shadow-lg rounded-lg">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-semibold text-primary">Platform Announcements</h1>
+        <a href="{{ add_announcement_url }}" target="_blank" class="bg-secondary text-primary px-4 py-2 rounded-md hover:bg-opacity-90 transition text-sm font-medium">
+            <i class="fas fa-plus mr-1"></i> Create Announcement
+        </a>
+    </div>
+
+    {% if announcements %}
+    <div class="space-y-4">
+        {% for announcement in announcements %}
+        <div class="p-4 rounded-md border-l-4 
+            {% if announcement.level == 'CRITICAL' %}border-red-500 bg-red-50
+            {% elif announcement.level == 'WARNING' %}border-yellow-500 bg-yellow-50
+            {% elif announcement.level == 'SUCCESS' %}border-green-500 bg-green-50
+            {% else %}border-blue-500 bg-blue-50{% endif %} relative">
+            <div class="flex justify-between items-start">
+                <h3 class="font-semibold text-lg 
+                    {% if announcement.level == 'CRITICAL' %}text-red-700
+                    {% elif announcement.level == 'WARNING' %}text-yellow-700
+                    {% elif announcement.level == 'SUCCESS' %}text-green-700
+                    {% else %}text-blue-700{% endif %}">{{ announcement.title }}
+                    {% if not announcement.is_active %}<span class="text-xs font-normal text-gray-400 italic">(Inactive)</span>{% endif %}
+                </h3>
+                <span class="text-xs text-gray-500">{{ announcement.publish_date|naturaltime }}</span>
+            </div>
+            <p class="text-sm text-gray-600 mt-1">{{ announcement.content|linebreaksbr|truncatewords_html:40 }}</p>
+            <div class="text-xs text-gray-400 mt-2">
+                Level: {{ announcement.get_level_display }} | Expires: {{ announcement.expiry_date|date:"Y-m-d"|default:"Never" }}
+            </div>
+            <div class="absolute top-3 right-3">
+                 <a href="{% url 'admin:landing_platformannouncement_change' announcement.id %}" target="_blank" class="text-gray-400 hover:text-secondary p-1" title="Edit in Django Admin"><i class="fas fa-edit"></i></a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-gray-600">No announcements found. <a href="{{ add_announcement_url }}" target="_blank" class="text-secondary hover:underline">Create the first announcement.</a></p>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,297 @@
+{% extends "base.html" %}
+{% load static %}
+{% load account %} {% block title %}{{ page_title|default:"My Dashboard" }} | FTMOTrade Fund{% endblock %}
+
+{% block body_content %}
+<div class="flex flex-col min-h-screen">
+    <nav class="bg-primary text-white shadow-md sticky top-0 z-40">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center py-3">
+                <!-- Mobile menu button -->
+                <button id="mobile-menu-button" class="md:hidden flex items-center text-white focus:outline-none" aria-label="Open sidebar menu">
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                </button>
+                
+                <div>
+                    <a href="{% url 'user_dashboard:home' %}" class="text-xl font-bold hover:text-secondary transition">FTMOTrade Fund</a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-gray-300 hidden md:inline">Welcome, {% user_display user %}!</span>
+                    <span class="text-sm text-gray-300 md:hidden">{% user_display user %}</span>
+                    <a href="{% url 'landing:home' %}" class="text-sm hover:text-secondary transition" title="View Public Site"><i class="fas fa-home"></i> <span class="hidden md:inline">Site</span></a>
+                    <a href="{% url 'account_logout' %}" class="text-sm bg-secondary text-primary px-3 py-1 rounded hover:bg-opacity-80 transition" title="Logout"><i class="fas fa-sign-out-alt"></i> <span class="hidden md:inline">Logout</span></a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="flex-grow container mx-auto px-2 sm:px-4 py-6">
+        <div class="flex flex-col md:flex-row gap-4 md:gap-6">
+            <!-- Mobile sidebar backdrop overlay -->
+            <div id="sidebar-backdrop" class="fixed inset-0 bg-black opacity-50 z-30 md:hidden hidden"></div>
+            
+            <!-- Sidebar - now with mobile styling -->
+            <aside id="sidebar" class="fixed inset-y-0 left-0 w-64 bg-white shadow-lg transform -translate-x-full transition-transform duration-300 z-40 md:static md:transform-none md:w-1/4 lg:w-1/5 md:rounded-lg md:h-fit md:p-4 md:shadow-lg md:z-auto overflow-y-auto">
+                <!-- Mobile close button -->
+                <div class="flex items-center justify-between p-4 border-b md:hidden">
+                    <h2 class="font-bold text-lg text-primary">Menu</h2>
+                    <button id="close-sidebar" class="text-gray-500 hover:text-gray-800">
+                        <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                
+                <div class="p-4 sm:p-6">
+                    <h3 class="text-lg font-semibold text-primary mb-4 border-b pb-2">My Account</h3>
+                    <ul class="space-y-1">
+                        <li><a href="{% url 'user_dashboard:home' %}" class="block px-3 py-2 rounded hover:bg-light text-gray-700 hover:text-secondary transition {% if request.resolver_match.url_name == 'home' %}bg-light text-secondary font-medium{% endif %}"><i class="fas fa-tachometer-alt fa-fw mr-2"></i>Dashboard</a></li>
+                        <li><a href="{% url 'user_dashboard:transactions' %}" class="block px-3 py-2 rounded hover:bg-light text-gray-700 hover:text-secondary transition {% if request.resolver_match.url_name == 'transactions' %}bg-light text-secondary font-medium{% endif %}"><i class="fas fa-exchange-alt fa-fw mr-2"></i>Transactions</a></li>
+                        <li><a href="{% url 'user_dashboard:my_trader_details' %}" class="block px-3 py-2 rounded hover:bg-light text-gray-700 hover:text-secondary transition {% if request.resolver_match.view_name == 'user_dashboard:my_trader_details' %}bg-light text-secondary font-medium{% endif %}"><i class="fas fa-user-tie fa-fw mr-2"></i>My Trader</a></li>
+                        <li><a href="{% url 'user_dashboard:notifications' %}" class="block px-3 py-2 rounded hover:bg-light text-gray-700 hover:text-secondary transition {% if request.resolver_match.view_name == 'user_dashboard:notifications' %}bg-light text-secondary font-medium{% endif %}"><i class="fas fa-bell fa-fw mr-2"></i>Notifications <span id="unreadCountBadge" class="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full ml-1 hidden">0</span></a></li>
+                        <li><a href="{% url 'user_dashboard:documents' %}" class="block px-3 py-2 rounded hover:bg-light text-gray-700 hover:text-secondary transition {% if request.resolver_match.view_name == 'user_dashboard:documents' %}bg-light text-secondary font-medium{% endif %}"><i class="fas fa-file-alt fa-fw mr-2"></i>Documents</a></li>
+                        <li><a href="{% url 'user_dashboard:settings' %}" class="block px-3 py-2 rounded hover:bg-light text-gray-700 hover:text-secondary transition {% if request.resolver_match.url_name == 'settings' or request.resolver_match.url_name == 'profile_update' %}bg-light text-secondary font-medium{% endif %}"><i class="fas fa-cog fa-fw mr-2"></i>Settings</a></li>
+                    </ul>
+                    <hr class="my-4">
+                    <h3 class="text-lg font-semibold text-primary mb-4 border-b pb-2">Support</h3>
+                    <ul class="space-y-1">
+                        <li><a href="https://wa.me/YOUR_WAPP_NUMBER" target="_blank" class="block px-3 py-2 rounded hover:bg-light text-gray-700 hover:text-secondary transition"><i class="fab fa-whatsapp fa-fw mr-2 text-green-500"></i>WhatsApp Chat</a></li>
+                        <li><a href="https://ig.me/m/YOUR_IG_USERNAME" target="_blank" class="block px-3 py-2 rounded hover:bg-light text-gray-700 hover:text-secondary transition"><i class="fab fa-instagram fa-fw mr-2 text-pink-500"></i>Instagram DM</a></li>
+                        <li><button id="userDashboardChatbotBtn" class="w-full text-left block px-3 py-2 rounded hover:bg-light text-gray-700 hover:text-secondary transition"><i class="fas fa-robot fa-fw mr-2 text-blue-500"></i>AI Chatbot</button></li>
+                    </ul>
+                </div>
+            </aside>
+            
+            <main class="w-full md:w-3/4 lg:w-4/5">
+                {% if messages %}
+                <div class="mb-4">
+                    <ul class="message-list">
+                        {% for message in messages %}
+                        <li class="p-4 rounded-md {{ message.tags }}">{{ message }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+                {% block user_dashboard_content %}
+                {% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <footer class="bg-dark text-gray-400 text-center p-4 text-sm mt-auto">
+        &copy; {% now "Y" %} FTMOTrade Fund. All Rights Reserved.
+    </footer>
+</div>
+
+<div id="chatbotModalUser" class="fixed inset-0 flex items-center justify-center z-[1001] hidden">
+    <div class="absolute inset-0 bg-black bg-opacity-50" id="chatbotOverlayUser"></div>
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 z-10 relative">
+        <div class="bg-primary text-white p-4 rounded-t-lg flex justify-between items-center">
+            <h3 class="text-lg font-bold">Support Chat</h3>
+            <button id="closeChatbotUser" class="text-white hover:text-gray-300 transition">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <div id="chatMessagesUser" class="p-4 h-80 overflow-y-auto">
+            <div class="flex mb-4">
+                <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white mr-2 flex-shrink-0">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M8.707 7.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l2-2a1 1 0 00-1.414-1.414L11 7.586V3a1 1 0 10-2 0v4.586l-.293-.293z"></path><path d="M3 5a2 2 0 012-2h1a1 1 0 010 2H5v7h2l1 2h4l1-2h2V5h-1a1 1 0 110-2h1a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V5z"></path></svg>
+                </div>
+                <div class="bg-light rounded-lg p-3 max-w-xs"><p>Hello {{user.first_name|default:"there"}}! How can our AI assistant help you today?</p></div>
+            </div>
+        </div>
+        <div class="border-t p-4">
+            <div class="flex">
+                <input type="text" id="chatInputUser" class="flex-1 border border-gray-300 rounded-l-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary" placeholder="Type your message...">
+                <button id="sendChatBtnUser" class="bg-primary text-white px-4 py-2 rounded-r-md hover:bg-opacity-90 transition">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11h2v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"></path></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Mobile sidebar functionality
+    const mobileMenuButton = document.getElementById('mobile-menu-button');
+    const sidebar = document.getElementById('sidebar');
+    const closeSidebar = document.getElementById('close-sidebar');
+    const sidebarBackdrop = document.getElementById('sidebar-backdrop');
+    
+    function openSidebar() {
+        sidebar.classList.remove('-translate-x-full');
+        sidebarBackdrop.classList.remove('hidden');
+        document.body.classList.add('overflow-hidden'); // Prevent background scrolling
+    }
+    
+    function closeSidebarFunc() {
+        sidebar.classList.add('-translate-x-full');
+        sidebarBackdrop.classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+    }
+    
+    if (mobileMenuButton) mobileMenuButton.addEventListener('click', openSidebar);
+    if (closeSidebar) closeSidebar.addEventListener('click', closeSidebarFunc);
+    if (sidebarBackdrop) sidebarBackdrop.addEventListener('click', closeSidebarFunc);
+    
+    // Close sidebar when a link is clicked
+    const sidebarLinks = sidebar.querySelectorAll('a');
+    sidebarLinks.forEach(link => {
+        link.addEventListener('click', () => {
+            // Only close on mobile
+            if (window.innerWidth < 768) {
+                closeSidebarFunc();
+            }
+        });
+    });
+    
+    // Handle window resize
+    window.addEventListener('resize', () => {
+        if (window.innerWidth >= 768) {
+            sidebar.classList.remove('-translate-x-full');
+            sidebarBackdrop.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        } else {
+            sidebar.classList.add('-translate-x-full');
+        }
+    });
+
+    // Chatbot functionality for user dashboard
+    const chatbotBtnUser = document.getElementById('userDashboardChatbotBtn');
+    const chatbotModalUser = document.getElementById('chatbotModalUser');
+    const closeChatbotUser = document.getElementById('closeChatbotUser');
+    const chatbotOverlayUser = document.getElementById('chatbotOverlayUser');
+    const chatInputUser = document.getElementById('chatInputUser');
+    const sendChatBtnUser = document.getElementById('sendChatBtnUser');
+    const chatMessagesUser = document.getElementById('chatMessagesUser');
+
+    if (chatbotBtnUser) chatbotBtnUser.addEventListener('click', () => chatbotModalUser.classList.remove('hidden'));
+    if (closeChatbotUser) closeChatbotUser.addEventListener('click', () => chatbotModalUser.classList.add('hidden'));
+    if (chatbotOverlayUser) chatbotOverlayUser.addEventListener('click', () => chatbotModalUser.classList.add('hidden'));
+
+    function sendChatMessageUser() {
+        if (!chatInputUser || !chatMessagesUser) return;
+        const message = chatInputUser.value.trim();
+        if (message === '') return;
+        addMessageToChatUser(message, 'user');
+        chatInputUser.value = '';
+
+        // Simulate bot response (same logic as landing page for now)
+        setTimeout(() => {
+            let botResponse = "Thanks for your message! If I can't help, please use WhatsApp or Instagram for direct support.";
+            if (message.toLowerCase().includes('balance')) {
+                botResponse = "You can view your current balance on the main dashboard page.";
+            } else if (message.toLowerCase().includes('withdraw')) {
+                botResponse = "To make a withdrawal, please go to the 'Transactions' section and look for the withdrawal option. Note that processing times apply.";
+            } else if (message.toLowerCase().includes('tier') || message.toLowerCase().includes('profit share')) {
+                botResponse = "Your current tier and profit split details are shown on your main dashboard. If you're interested in upgrading, check for an 'Upgrade Tier' option or contact support.";
+            }
+            addMessageToChatUser(botResponse, 'bot');
+        }, 1000);
+    }
+
+    if (sendChatBtnUser) sendChatBtnUser.addEventListener('click', sendChatMessageUser);
+    if (chatInputUser) chatInputUser.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendChatMessageUser();
+    });
+
+    function addMessageToChatUser(text, sender) {
+        if (!chatMessagesUser) return;
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'flex mb-4' + (sender === 'user' ? ' justify-end' : '');
+        let messageContent = '';
+        if (sender === 'bot') {
+            messageContent = `
+                <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white mr-2 flex-shrink-0">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M8.707 7.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l2-2a1 1 0 00-1.414-1.414L11 7.586V3a1 1 0 10-2 0v4.586l-.293-.293z"></path><path d="M3 5a2 2 0 012-2h1a1 1 0 010 2H5v7h2l1 2h4l1-2h2V5h-1a1 1 0 110-2h1a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V5z"></path></svg>
+                </div>
+                <div class="bg-light rounded-lg p-3 max-w-xs"><p>${text}</p></div>`;
+        } else { // user
+            messageContent = `
+                <div class="bg-secondary text-primary rounded-lg p-3 max-w-xs"><p>${text}</p></div>
+                <div class="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 ml-2 flex-shrink-0">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg>
+                </div>`;
+        }
+        messageDiv.innerHTML = messageContent;
+        chatMessagesUser.appendChild(messageDiv);
+        chatMessagesUser.scrollTop = chatMessagesUser.scrollHeight;
+    }
+});
+</script>
+
+<style>
+/* Add custom styles for the mobile sidebar */
+@media (max-width: 767px) {
+    body.overflow-hidden {
+        overflow: hidden;
+    }
+    
+    #sidebar {
+        height: 100%;
+        padding-bottom: 2rem;
+    }
+    
+    /* Add an arrow icon to mobile menu button */
+    #mobile-menu-button::after {
+        content: '';
+        display: inline-block;
+        width: 0.4rem;
+        height: 0.4rem;
+        margin-left: 0.5rem;
+        border-top: 2px solid white;
+        border-right: 2px solid white;
+        transform: rotate(45deg);
+    }
+    
+    /* Add slide-in animation */
+    #sidebar {
+        animation-duration: 0.3s;
+        animation-timing-function: ease-out;
+    }
+    
+    #sidebar:not(.-translate-x-full) {
+        animation-name: slideIn;
+    }
+    
+    @keyframes slideIn {
+        from {
+            transform: translateX(-100%);
+        }
+        to {
+            transform: translateX(0);
+        }
+    }
+}
+
+/* Better contrast for messages in error, success, etc states */
+.error {
+    background-color: #FEE2E2;
+    color: #B91C1C;
+    border-left: 4px solid #EF4444;
+}
+
+.success {
+    background-color: #D1FAE5;
+    color: #065F46;
+    border-left: 4px solid #10B981;
+}
+
+.warning {
+    background-color: #FEF3C7;
+    color: #92400E;
+    border-left: 4px solid #F59E0B;
+}
+
+.info {
+    background-color: #DBEAFE;
+    color: #1E40AF;
+    border-left: 4px solid #3B82F6;
+}
+</style>
+{% endblock %}

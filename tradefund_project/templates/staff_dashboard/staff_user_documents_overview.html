@@ -1,0 +1,24 @@
+{% extends "staff_dashboard/base_dashboard.html" %}
+
+{% block dashboard_content %}
+<div class="bg-white p-6 shadow-lg rounded-lg">
+    <h1 class="text-2xl font-semibold text-primary mb-6">User Documents Overview</h1>
+    <p class="text-gray-700 mb-4">
+        Management of user-specific documents (like investment agreements, tax statements) is primarily handled
+        through the main Django Admin interface. This provides robust tools for uploading, associating with users,
+        and managing files.
+    </p>
+    <div class="space-y-3">
+        <a href="{{ userdocument_admin_url }}" target="_blank" class="inline-flex items-center bg-secondary text-primary px-4 py-2 rounded-md hover:bg-opacity-90 transition text-sm font-medium">
+            <i class="fas fa-folder-open mr-2"></i> Manage All User Documents
+        </a>
+        <a href="{{ user_admin_url }}" target="_blank" class="inline-flex items-center bg-primary text-white px-4 py-2 rounded-md hover:bg-opacity-80 transition text-sm font-medium">
+            <i class="fas fa-users-cog mr-2"></i> Manage Users (and their associated documents via inlines if set up)
+        </a>
+    </div>
+    <p class="text-sm text-gray-500 mt-6">
+        From the Django Admin, you can search for specific users and upload or review documents associated with them.
+        Consider adding `UserDocument` as an inline to the `UserAdmin` for easier access if not already done.
+    </p>
+</div>
+{% endblock %}

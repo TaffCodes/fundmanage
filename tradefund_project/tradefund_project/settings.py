@@ -20,6 +20,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.humanize',
+    
+    
+    # Your apps
+    'landing.apps.LandingConfig',
+    'landing.templatetags.custom_filters',
 
     # Third-party apps
     'allauth',
@@ -28,8 +33,7 @@ INSTALLED_APPS = [
     'django.contrib.sites',  # Required by allauth
     'widget_tweaks',         # For easier form styling in templates
 
-    # Your apps
-    'landing.apps.LandingConfig',
+     # Custom template filters
 ]
 
 MIDDLEWARE = [
@@ -56,6 +60,8 @@ TEMPLATES = [
                 'django.template.context_processors.request', # Required by allauth
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'landing.context_processors.staff_dashboard_context',
+                'landing.context_processors.unread_notifications_context',
             ],
         },
     },
@@ -142,3 +148,12 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'mauyaroy@gmail.com'
 EMAIL_HOST_PASSWORD = 'zmql bvsz jlib txof'
 DEFAULT_FROM_EMAIL = 'mauyaroy@gmail.com'
+
+LOGIN_REDIRECT_URL = '/u/'
+ACCOUNT_LOGOUT_REDIRECT_URL = '/'
+
+# Media files (uploads)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+TEMPLATE_DEBUG = True # Set to False in production

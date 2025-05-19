@@ -1,0 +1,47 @@
+{% extends "user_dashboard/base_user_dashboard.html" %}
+{% load widget_tweaks %}
+
+{% block user_dashboard_content %}
+<div class="bg-white p-6 sm:p-8 shadow-lg rounded-lg">
+    <div class="flex items-center mb-6">
+        <a href="{% url 'user_dashboard:settings' %}" class="text-primary hover:text-secondary mr-3"><i class="fas fa-arrow-left"></i></a>
+        <h1 class="text-2xl font-semibold text-primary">Update Profile</h1>
+    </div>
+
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+
+        <div>
+            <label for="{{ form.first_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+            {% render_field form.first_name placeholder="Your first name" %}
+            {% if form.first_name.errors %}<p class="text-red-500 text-xs mt-1">{{ form.first_name.errors|first }}</p>{% endif %}
+        </div>
+
+        <div>
+            <label for="{{ form.last_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+            {% render_field form.last_name placeholder="Your last name" %}
+            {% if form.last_name.errors %}<p class="text-red-500 text-xs mt-1">{{ form.last_name.errors|first }}</p>{% endif %}
+        </div>
+
+        <div>
+            <label for="id_email" class="block text-sm font-medium text-gray-700 mb-1">Email Address (Primary)</label>
+            <input type="email" value="{{ user.email }}" readonly 
+                   class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100 cursor-not-allowed
+                          focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+            <p class="text-xs text-gray-500 mt-1">To change your primary email, please go to <a href="{% url 'account_email' %}" class="text-secondary hover:underline">Manage Email Addresses</a>.</p>
+        </div>
+
+        <div>
+            <label for="{{ form.phone_number.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+            {% render_field form.phone_number placeholder="Your phone number (optional)" %}
+            {% if form.phone_number.errors %}<p class="text-red-500 text-xs mt-1">{{ form.phone_number.errors|first }}</p>{% endif %}
+        </div>
+
+        <div>
+            <button type="submit" class="w-full md:w-auto group relative flex justify-center py-3 px-6 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary">
+                Save Changes
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

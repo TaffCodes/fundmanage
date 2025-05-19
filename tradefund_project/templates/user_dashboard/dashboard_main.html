@@ -1,0 +1,252 @@
+{% extends "user_dashboard/base_user_dashboard.html" %}
+{% load static humanize %}
+
+{% block user_dashboard_content %}
+<div class="bg-gradient-to-r from-primary to-dark text-white p-6 rounded-lg shadow-xl mb-8">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+        <div class="w-full sm:w-auto">
+            <h1 class="text-2xl md:text-3xl font-semibold">Welcome, {{ user.first_name|default:user.username }}!</h1>
+            <!-- Reorganized earnings display for mobile -->
+            <div class="flex flex-col sm:flex-row mt-2">
+                <div class="mb-2 sm:mb-0 sm:mr-4">
+                    <p class="text-sm text-gray-300">Total Earnings:</p>
+                    <p class="font-bold text-secondary">${{ user.profile.total_earnings_cached|floatformat:2|intcomma }}</p>
+                </div>
+                <div class="sm:ml-2">
+                    <p class="text-sm text-gray-300">Last Trade Profit:</p>
+                    <p class="font-bold text-secondary">${{ last_trade_profit }}</p>
+                </div>
+            </div>
+        </div>
+        {% if user.profile.selected_tier %}
+        <div class="text-left sm:text-right mt-4 sm:mt-0">
+            <span class="text-2xl">{{ user.profile.get_tier_icon }}</span>
+            <span class="block text-sm font-semibold bg-white text-primary px-3 py-1 rounded-full shadow-md mt-1">{{ user.profile.get_selected_tier_display }}</span>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+    <div class="lg:col-span-2 bg-white p-6 shadow-lg rounded-lg">
+        <div class="flex justify-between items-center mb-1">
+            <h2 class="text-xl font-semibold text-primary">Portfolio Overview</h2>
+            <div class="text-xs text-gray-500">Updated: {% now "F j, Y, P" %}</div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+            <div>
+                <p class="text-sm text-gray-600">Live Balance:</p>
+                <p class="text-3xl font-bold text-primary">${{ user.profile.current_balance_cached|floatformat:2|intcomma }}</p>
+            </div>
+            <div class="bg-light p-3 rounded-md">
+                <h3 class="text-sm font-semibold text-primary mb-1">Profit Split Summary</h3>
+                {% if user_share_percentage > 0 %}
+                <p class="text-xs text-gray-700">
+                    Your profit share: <span class="font-bold">{{ user_share_percentage }}%</span>.
+                    <span class="block mt-1">You've earned <span class="font-bold text-secondary">${{ user.profile.total_earnings_cached|floatformat:2|intcomma }}</span> from total generated profit of <span class="font-bold">${{ gross_profit_for_user_share|default:0.00|floatformat:2|intcomma }}</span>.</span>
+                </p>
+                {% else %}
+                <p class="text-xs text-gray-700">Profit split info available once tier active & profits generated.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div>
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-2">
+                <h3 class="text-md font-semibold text-primary mb-1 sm:mb-0">Performance History</h3>
+                <div class="text-xs">
+                    <select id="chartDateRange" class="p-1 border border-gray-300 rounded text-gray-600 focus:ring-secondary focus:border-secondary">
+                        <option value="3">Last 3 Days</option>
+                        <option value="7">Last 7 Days</option>
+                        <option value="14d">Last 14 Days</option>
+                        <option value="30" selected>Last 30 Days</option>
+                        <option value="90">Last 90 Days</option>
+                    </select>
+                </div>
+            </div>
+            <div class="w-full h-64 md:h-80 bg-gray-50 rounded-md p-2">
+                <canvas id="portfolioChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="space-y-6">
+        <div class="bg-white p-6 shadow-lg rounded-lg">
+            <h2 class="text-xl font-semibold text-primary mb-4">My Investment Tier</h2>
+            {% if user.profile.selected_tier %}
+                <p class="text-sm text-gray-600">Current Tier: <span class="font-bold text-lg text-secondary">{{ user.profile.get_selected_tier_display }}</span> {{ user.profile.get_tier_icon }}</p>
+                <!-- Fixed profit split display on mobile -->
+                <div class="mt-2">
+                    <p class="text-sm text-gray-600">Profit Split:</p>
+                    <p class="text-sm font-semibold">
+                        <span class="text-secondary">{{ user.profile.get_profit_split_percentages.0 }}%</span> to you / 
+                        <span>{{ user.profile.get_profit_split_percentages.1 }}%</span> to trader/platform
+                    </p>
+                </div>
+                {% if can_upgrade %}
+                <button disabled title="Feature coming soon" class="mt-6 w-full bg-accent text-white px-4 py-2 rounded-md hover:bg-opacity-90 transition opacity-50 cursor-not-allowed text-sm font-medium">
+                    Upgrade Tier (Coming Soon)
+                </button>
+                {% else %}
+                <p class="mt-6 text-sm text-green-600 font-semibold"><i class="fas fa-check-circle"></i> You are on our highest tier!</p>
+                {% endif %}
+            {% else %}
+                <p class="text-sm text-gray-600">You have not selected an investment tier yet.</p>
+                <a href="{% url 'landing:home' %}#tiers" class="mt-4 inline-block bg-secondary text-primary px-4 py-2 rounded-md hover:bg-opacity-90 transition text-sm font-medium">
+                    Choose a Tier
+                </a>
+            {% endif %}
+        </div>
+
+        <div class="bg-white p-6 shadow-lg rounded-lg">
+            <h2 class="text-xl font-semibold text-primary mb-4">Assigned Trader</h2>
+            {% if user.profile.assigned_trader %}
+            {% with trader=user.profile.assigned_trader %}
+                <div class="flex items-center space-x-4 mb-3">
+                    {% if trader.profile_image %}
+                    <img src="{{ trader.profile_image.url }}" alt="{{ trader.name }}" class="w-16 h-16 rounded-full object-cover shadow-md">
+                    {% else %}
+                    <div class="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-xl font-semibold shadow-md">
+                        {{ trader.name|slice:":1"|upper }}
+                    </div>
+                    {% endif %}
+                    <div>
+                        <h3 class="text-lg font-semibold text-primary">{{ trader.name }}</h3>
+                        <p class="text-xs text-gray-500">ID: {{ trader.trader_id_display }}</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-2">
+                    <p class="text-sm text-gray-600"><strong class="font-medium text-gray-800">Strategy:</strong> {{ trader.get_strategy_display }}</p>
+                    <p class="text-sm text-gray-600"><strong class="font-medium text-gray-800">Risk Level:</strong> <span class="font-semibold 
+                        {% if trader.risk_level == 'LOW' %}text-green-600{% elif trader.risk_level == 'MEDIUM' %}text-yellow-600{% elif trader.risk_level == 'HIGH' %}text-red-600{% endif %}">{{ trader.get_risk_level_display }}</span></p>
+                    <p class="text-sm text-gray-600"><strong class="font-medium text-gray-800">Monthly ROI (est.):</strong> {{ trader.current_roi_monthly }}%</p>
+                    <p class="text-sm text-gray-600"><strong class="font-medium text-gray-800">Win Rate:</strong> {{ trader.win_rate_percentage }}%</p>
+                </div>
+                <a href="{% url 'user_dashboard:my_trader_details' %}" class="mt-4 block w-full text-center bg-primary text-white px-4 py-2 rounded-md hover:bg-opacity-90 transition text-sm font-medium">
+                    View Trader Details
+                </a>
+            {% endwith %}
+            {% else %}
+            <p class="text-sm text-gray-500 italic">You have not been assigned a trader yet. This will typically happen once your investment tier is active.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }} {# Includes JS from base_user_dashboard.html for chatbot #}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const ctx = document.getElementById('portfolioChart');
+    if (ctx) {
+        let portfolioChartInstance = null;
+        const dateRangeSelect = document.getElementById('chartDateRange');
+
+        async function fetchChartData(days = 30) {
+            try {
+                const response = await fetch(`{% url 'user_dashboard:portfolio_history_api' %}?days=${days}`);
+                if (!response.ok) {
+                    console.error('Failed to fetch chart data:', response.statusText);
+                    const canvasCtx = ctx.getContext('2d');
+                    canvasCtx.clearRect(0, 0, ctx.width, ctx.height);
+                    canvasCtx.textAlign = 'center';
+                    canvasCtx.fillStyle = '#a0aec0';
+                    canvasCtx.font = '14px Montserrat';
+                    canvasCtx.fillText('Could not load chart data at this moment.', ctx.width / 2, ctx.height / 2);
+                    return null;
+                }
+                return await response.json();
+            } catch (error) {
+                console.error('Error fetching chart data:', error);
+                const canvasCtx = ctx.getContext('2d');
+                canvasCtx.clearRect(0, 0, ctx.width, ctx.height);
+                canvasCtx.textAlign = 'center';
+                canvasCtx.fillStyle = '#a0aec0';
+                canvasCtx.font = '14px Montserrat';
+                canvasCtx.fillText('Error loading chart. Please try again later.', ctx.width / 2, ctx.height / 2);
+                return null;
+            }
+        }
+
+        async function renderChart(days = 30) {
+            const chartData = await fetchChartData(days);
+            const canvasCtx = ctx.getContext('2d');
+            canvasCtx.clearRect(0, 0, ctx.width, ctx.height);
+
+            if (!chartData || !chartData.labels || !chartData.data || chartData.data.length === 0) {
+                console.log("No valid chart data received or data array is empty.");
+                canvasCtx.textAlign = 'center';
+                canvasCtx.fillStyle = '#a0aec0';
+                canvasCtx.font = '14px Montserrat';
+                canvasCtx.fillText('No performance data available for this period.', ctx.width / 2, ctx.height / 2);
+                if (portfolioChartInstance) {
+                    portfolioChartInstance.destroy();
+                    portfolioChartInstance = null;
+                }
+                return;
+            }
+
+            if (portfolioChartInstance) {
+                portfolioChartInstance.destroy();
+            }
+            portfolioChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [{
+                        label: 'Portfolio Balance',
+                        data: chartData.data,
+                        borderColor: 'rgba(0, 199, 177, 1)',
+                        backgroundColor: 'rgba(0, 199, 177, 0.1)',
+                        tension: 0.1,
+                        fill: true,
+                        pointBackgroundColor: 'rgba(0, 199, 177, 1)',
+                        pointBorderColor: '#fff',
+                        pointHoverRadius: 6,
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgba(0, 199, 177, 1)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            ticks: { callback: function(value) { return '$' + value.toLocaleString(); }, font: { family: 'Montserrat' }, color: '#4a5568' },
+                            grid: { color: '#e2e8f0' }
+                        },
+                        x: {
+                            ticks: { font: { family: 'Montserrat' }, color: '#4a5568', maxRotation: 0, autoSkip: true, maxTicksLimit: 10 },
+                            grid: { display: false }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            mode: 'index', intersect: false, backgroundColor: 'rgba(10, 37, 64, 0.9)',
+                            titleFont: { family: 'Montserrat', weight: 'bold' }, bodyFont: { family: 'Montserrat' },
+                            padding: 10, cornerRadius: 4, displayColors: false,
+                            callbacks: { label: function(context) { let label = context.dataset.label || ''; if (label) { label += ': '; } if (context.parsed.y !== null) { label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed.y); } return label; }}
+                        }
+                    },
+                    interaction: { mode: 'nearest', axis: 'x', intersect: false }
+                }
+            });
+        }
+        
+        if (dateRangeSelect) {
+            dateRangeSelect.addEventListener('change', function() {
+                renderChart(this.value);
+            });
+            renderChart(dateRangeSelect.value); // Initial render
+        } else {
+            renderChart(); // Fallback if select doesn't exist
+        }
+    }
+});
+</script>
+{% endblock %}

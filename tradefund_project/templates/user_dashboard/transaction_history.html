@@ -1,0 +1,52 @@
+{% extends "user_dashboard/base_user_dashboard.html" %}
+{% load humanize %}
+
+{% block user_dashboard_content %}
+<div class="bg-white p-6 shadow-lg rounded-lg">
+    <h1 class="text-2xl font-semibold text-primary mb-6">Transaction History</h1>
+
+    {% if transactions %}
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-light">
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for tx in transactions %}
+                <tr>
+                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500" title="{{ tx.timestamp|date:"N j, Y, P" }}">{{ tx.timestamp|naturaltime }}</td>
+                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500 truncate" style="max-width: 80px;" title="{{tx.transaction_id}}">...{{ tx.transaction_id|slice:"-8:" }}</td>
+                    <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ tx.get_type_display }}</td>
+                    <td class="px-4 py-4 whitespace-nowrap text-sm text-right font-medium {% if tx.type == 'DEPOSIT' or tx.type == 'PROFIT_PAYOUT' or tx.type == 'INVESTMENT' %}text-green-600{% elif tx.type == 'WITHDRAWAL' or tx.type == 'FEE' %}text-red-600{% else %}text-gray-700{% endif %}">
+                        {% if tx.type == 'WITHDRAWAL' or tx.type == 'FEE' %}-{% endif %}${{ tx.amount|floatformat:2|intcomma }}
+                    </td>
+                    <td class="px-4 py-4 whitespace-nowrap text-sm">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                            {% if tx.status == 'COMPLETED' %}bg-green-100 text-green-800
+                            {% elif tx.status == 'PENDING' or tx.status == 'PROCESSING' %}bg-yellow-100 text-yellow-800
+                            {% elif tx.status == 'FAILED' or tx.status == 'CANCELLED' %}bg-red-100 text-red-800
+                            {% else %}bg-gray-100 text-gray-800{% endif %}">
+                            {{ tx.get_status_display }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-4 whitespace-normal text-sm text-gray-500 max-w-xs">{{ tx.description|default:"-"|truncatewords:10 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-10">
+        <i class="fas fa-receipt fa-3x text-gray-300 mb-3"></i>
+        <p class="text-gray-500">You have no transactions yet.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

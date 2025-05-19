@@ -1,0 +1,92 @@
+{% extends "user_dashboard/base_user_dashboard.html" %}
+{% load humanize %}
+
+{% block user_dashboard_content %}
+<div class="space-y-8">
+    {% if platform_announcements %}
+    <div class="bg-white p-6 shadow-lg rounded-lg">
+        <h1 class="text-xl font-semibold text-primary mb-4 flex items-center"><i class="fas fa-bullhorn mr-3 text-secondary"></i>Platform Announcements</h1>
+        <div class="space-y-4 max-h-60 overflow-y-auto pr-2">
+            {% for announcement in platform_announcements %}
+            <div class="p-4 rounded-md border-l-4 
+                {% if announcement.level == 'CRITICAL' %}border-red-500 bg-red-50
+                {% elif announcement.level == 'WARNING' %}border-yellow-500 bg-yellow-50
+                {% elif announcement.level == 'SUCCESS' %}border-green-500 bg-green-50
+                {% else %}border-blue-500 bg-blue-50{% endif %}">
+                <div class="flex justify-between items-start">
+                    <h3 class="font-semibold {% if announcement.level == 'CRITICAL' %}text-red-700{% elif announcement.level == 'WARNING' %}text-yellow-700{% elif announcement.level == 'SUCCESS' %}text-green-700{% else %}text-blue-700{% endif %}">{{ announcement.title }}</h3>
+                    <span class="text-xs text-gray-500">{{ announcement.publish_date|naturaltime }}</span>
+                </div>
+                <p class="text-sm text-gray-600 mt-1">{{ announcement.content|linebreaksbr }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="bg-white p-6 shadow-lg rounded-lg">
+        <div class="flex justify-between items-center mb-4">
+            <h1 class="text-xl font-semibold text-primary flex items-center"><i class="fas fa-bell mr-3 text-secondary"></i>My Notifications</h1>
+            </div>
+
+        {% if not unread_notifications and not read_notifications %}
+        <div class="text-center py-10">
+            <i class="fas fa-envelope-open-text fa-3x text-gray-300 mb-3"></i>
+            <p class="text-gray-500">You have no notifications.</p>
+        </div>
+        {% endif %}
+
+        {% if unread_notifications %}
+        <h2 class="text-lg font-medium text-gray-700 mb-3">Unread</h2>
+        <div class="space-y-3 mb-6">
+            {% for notification in unread_notifications %}
+            <div class="border p-4 rounded-md hover:shadow-md transition-shadow relative {% if not notification.is_read %}border-secondary bg-secondary/5{% else %}border-gray-200{% endif %}">
+                <div class="flex justify-between items-start">
+                    <div class="flex items-center">
+                         <i class="fas 
+                            {% if notification.type == 'PAYOUT' %}fa-hand-holding-usd text-green-500
+                            {% elif notification.type == 'TRADE_SUMMARY' %}fa-chart-bar text-blue-500
+                            {% elif notification.type == 'PLATFORM' %}fa-info-circle text-indigo-500
+                            {% elif notification.type == 'SECURITY' %}fa-shield-alt text-red-500
+                            {% elif notification.type == 'TIER_CHANGE' %}fa-medal text-yellow-500
+                            {% else %}fa-bell text-gray-500{% endif %} fa-fw mr-3 text-lg"></i>
+                        <p class="text-sm text-gray-800 {% if not notification.is_read %}font-semibold{% endif %}">{{ notification.message|linebreaksbr }}</p>
+                    </div>
+                    <span class="text-xs text-gray-500 whitespace-nowrap ml-2">{{ notification.timestamp|naturaltime }}</span>
+                </div>
+                {% if notification.link %}
+                    <a href="{{ notification.link }}" class="text-xs text-secondary hover:underline mt-1 inline-block">View Details</a>
+                {% endif %}
+                {% if not notification.is_read %}
+                    <a href="{% url 'user_dashboard:notifications' %}?mark_read={{ notification.id }}" title="Mark as read" class="absolute top-2 right-2 text-xs text-gray-400 hover:text-secondary p-1"><i class="fas fa-check-circle"></i></a>
+                    {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if read_notifications %}
+        <h2 class="text-lg font-medium text-gray-700 mb-3">Recent Read</h2>
+        <div class="space-y-3 opacity-70">
+            {% for notification in read_notifications %}
+            <div class="border p-3 rounded-md bg-gray-50">
+                 <div class="flex justify-between items-start">
+                    <div class="flex items-center">
+                         <i class="fas 
+                            {% if notification.type == 'PAYOUT' %}fa-hand-holding-usd
+                            {% elif notification.type == 'TRADE_SUMMARY' %}fa-chart-bar
+                            {% elif notification.type == 'PLATFORM' %}fa-info-circle
+                            {% elif notification.type == 'SECURITY' %}fa-shield-alt
+                            {% elif notification.type == 'TIER_CHANGE' %}fa-medal
+                            {% else %}fa-bell{% endif %} text-gray-400 fa-fw mr-3"></i>
+                        <p class="text-sm text-gray-600">{{ notification.message|truncatewords:20|linebreaksbr }}</p>
+                    </div>
+                    <span class="text-xs text-gray-400 whitespace-nowrap ml-2">{{ notification.timestamp|naturaltime }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
