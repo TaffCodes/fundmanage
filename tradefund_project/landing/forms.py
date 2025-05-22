@@ -2,18 +2,12 @@
 from django import forms
 from allauth.account.forms import SignupForm
 from django.contrib.auth.models import User
-from .models import UserProfile, KYCProfile, Transaction, PortfolioSnapshot, DailyProfitLog
+from .models import UserProfile, KYCProfile, Transaction, PortfolioSnapshot, DailyProfitLog, DailyLedgerEntry
 from datetime import datetime, timedelta
 from django.utils import timezone
 from decimal import Decimal
+from .utils import TIER_CONFIG
 
-TIER_CONFIG = {
-    'basic': {'price': 500.00, 'name': 'Basic Package', 'bi_weekly_roi_percent': 0.025},  # 2.5% every 2 weeks
-    'standard': {'price': 1500.00, 'name': 'Standard Package', 'bi_weekly_roi_percent': 0.035}, # 3.5% every 2 weeks
-    'premium': {'price': 2000.00, 'name': 'Premium Package', 'bi_weekly_roi_percent': 0.05},   # 5.0% every 2 weeks
-    '': {'price': 0.00, 'name': 'No Tier', 'bi_weekly_roi_percent': 0.00}, # For users with no tier
-}
-NETWORK_DAYS_IN_TWO_WEEKS = 10 # Typical (Mon-Fri for 2 weeks)}
 
 class CustomSignupForm(SignupForm):
     TIER_CHOICES_FORM = [
@@ -36,7 +30,6 @@ class CustomSignupForm(SignupForm):
 
     
     
-        # Fix the tier_info retrieval logic in the save method:
     def save(self, request):
         user = super(CustomSignupForm, self).save(request)
         profile, created = UserProfile.objects.get_or_create(user=user)
@@ -44,50 +37,57 @@ class CustomSignupForm(SignupForm):
         tier_key = self.cleaned_data.get('selected_tier', '')
         profile.selected_tier = tier_key
         
-        # Fixed line - use a safer approach to get tier info with proper fallback
-        tier_info = TIER_CONFIG.get(tier_key) or TIER_CONFIG.get('') or {'price': 0.00, 'name': 'No Tier', 'bi_weekly_roi_percent': 0.00}
-        
-        # Set initial investment details
-        profile.initial_investment_amount = Decimal(tier_info['price'])
-        profile.investment_start_date = timezone.now().date()
-        
-        # Initialize cached balance to initial investment. 
-        # The management command will then take over for daily updates.
-        profile.current_balance_cached = profile.initial_investment_amount
-        profile.total_earnings_cached = Decimal(0.00) # Earnings start at 0
-    
-        profile.save()
+        tier_info = TIER_CONFIG.get(tier_key, TIER_CONFIG.get('', TIER_CONFIG[None]))
+        initial_amount = Decimal(tier_info['price'])
 
-        # Create initial Transaction and PortfolioSnapshot for the investment start
-        if profile.initial_investment_amount > 0:
-            Transaction.objects.get_or_create(
-                user=user,
-                type='INVESTMENT', # New type for initial funding
-                amount=profile.initial_investment_amount,
-                status='COMPLETED',
-                description=f"{tier_info['name']} Initial Investment",
-                # Set timestamp to match investment_start_date if desired, or let it default to now
-                timestamp=timezone.make_aware(timezone.datetime.combine(profile.investment_start_date, timezone.datetime.min.time())) if profile.investment_start_date else timezone.now()
+        if not profile.investment_start_date: # Set only if not already set (e.g. for first time)
+            profile.initial_investment_amount = initial_amount
+            profile.investment_start_date = timezone.now().date()
+            profile.current_cycle_principal = initial_amount
+            profile.current_cycle_start_date = profile.investment_start_date
+            profile.is_awaiting_reinvestment_action = False # Start active
+            
+            profile.current_balance_cached = initial_amount
+            profile.total_earnings_cached = Decimal('0.00')
+            profile.save()
 
-            )
-            # Create the very first snapshot
-            PortfolioSnapshot.objects.get_or_create(
-                user=user,
-                date=profile.investment_start_date,
-                defaults={
-                    'balance': profile.initial_investment_amount,
-                    'profit_loss_since_last': Decimal(0.00)
-                }
-            )
-            # Create the first DailyProfitLog entry
-            DailyProfitLog.objects.get_or_create(
-                user=user,
-                date=profile.investment_start_date,
-                defaults={
-                    'profit_amount': Decimal(0.00),
-                    'closing_balance': profile.initial_investment_amount
-                }
-            )
+            # Create initial Transaction, PortfolioSnapshot, and DailyLedgerEntry
+            if initial_amount > 0:
+                # Initial Transaction for the investment
+                Transaction.objects.get_or_create(
+                    user=user,
+                    type='INVESTMENT',
+                    amount=initial_amount,
+                    status='COMPLETED',
+                    description=f"{tier_info.get('name', 'Tier')} Initial Investment",
+                    timestamp=timezone.make_aware(timezone.datetime.combine(profile.investment_start_date, timezone.datetime.min.time()))
+                )
+                # Initial DailyLedgerEntry (day 0 of investment)
+                DailyLedgerEntry.objects.get_or_create(
+                    user=user,
+                    date=profile.investment_start_date,
+                    defaults={
+                        'opening_gross_managed_capital': initial_amount,
+                        'daily_gross_profit': Decimal('0.00'),
+                        'user_profit_share_percentage': profile.get_user_profit_split_percentage(),
+                        'user_profit_amount': Decimal('0.00'),
+                        'platform_profit_amount': Decimal('0.00'),
+                        'user_opening_balance': initial_amount,
+                        'user_closing_balance': initial_amount
+                    }
+                )
+                # Initial PortfolioSnapshot
+                PortfolioSnapshot.objects.get_or_create(
+                    user=user,
+                    date=profile.investment_start_date,
+                    defaults={
+                        'balance': initial_amount,
+                        'profit_loss_since_last': Decimal('0.00')
+                    }
+                )
+        else: # If profile existed, just save selected_tier (handle upgrades differently if needed)
+            profile.save(update_fields=['selected_tier'])
+            
         return user
 
 class UserProfileUpdateForm(forms.ModelForm):

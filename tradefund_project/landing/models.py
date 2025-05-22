@@ -10,17 +10,7 @@ import uuid
 from django_countries.fields import CountryField
 from decimal import Decimal
 from datetime import timedelta
-
-# --- TIER_CONFIG (can be moved to utils.py) ---
-TIER_CONFIG = {
-    'basic': {'price': 500.00, 'name': 'Basic Package', 'bi_weekly_roi_percent': 0.025},
-    'standard': {'price': 1500.00, 'name': 'Standard Package', 'bi_weekly_roi_percent': 0.035},
-    'premium': {'price': 2000.00, 'name': 'Premium Package', 'bi_weekly_roi_percent': 0.05},
-    '': {'price': 0.00, 'name': 'No Tier', 'bi_weekly_roi_percent': 0.00},
-    None: {'price': 0.00, 'name': 'No Tier', 'bi_weekly_roi_percent': 0.00},
-}
-NETWORK_DAYS_IN_TWO_WEEKS = 10
-# --- End TIER_CONFIG ---
+from .utils import TIER_CONFIG, BI_WEEKLY_GROSS_TARGET_ROI, NETWORK_DAYS_IN_INVESTMENT_CYCLE, DAILY_GROSS_COMPOUNDING_RATE
 
 
 
@@ -89,7 +79,7 @@ class UserProfile(models.Model):
         # For now, assuming TIER_CONFIG is defined in this module or imported properly
         return TIER_CONFIG.get(self.selected_tier, TIER_CONFIG.get('', TIER_CONFIG[None]))
 
-    def get_user_profit_share_percentage(self):
+    def get_user_profit_split_percentage(self):
         tier_config = self.get_tier_config()
         return tier_config.get('user_profit_share_percent', Decimal('0.0'))
 
@@ -173,13 +163,17 @@ class DailyProfitLog(models.Model):
         return f"{self.user.username} - {self.date} - Profit: {self.profit_amount} - Balance: {self.closing_balance}"
     
     
+    
+
 class Transaction(models.Model):
     TRANSACTION_TYPES = [
         ('DEPOSIT', 'Deposit'),
         ('WITHDRAWAL', 'Withdrawal'),
-        ('PROFIT_PAYOUT', 'Profit Payout'),
+        ('PROFIT_PAYOUT', 'Profit Payout'), # Actual payout by platform
         ('FEE', 'Fee'),
-        ('INVESTMENT', 'Initial Investment'), # Added for clarity
+        ('INITIAL_INVESTMENT', 'Initial Investment'), # Changed from 'INVESTMENT' for clarity
+        ('DAILY_SIMULATED_PROFIT', 'Daily Simulated Profit'), # New
+        ('REINVESTMENT_START', 'Reinvestment Cycle Start'), # New
     ]
     STATUS_CHOICES = [
         ('PENDING', 'Pending'),
@@ -191,10 +185,11 @@ class Transaction(models.Model):
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='transactions')
     transaction_id = models.CharField(max_length=100, default=uuid.uuid4, unique=True, editable=False)
-    timestamp = models.DateTimeField(default=timezone.now)
-    type = models.CharField(max_length=20, choices=TRANSACTION_TYPES)
+    # Ensure timestamp defaults to an aware datetime if settings.USE_TZ is True
+    timestamp = models.DateTimeField(default=timezone.now) 
+    type = models.CharField(max_length=30, choices=TRANSACTION_TYPES) # Increased max_length
     amount = models.DecimalField(max_digits=12, decimal_places=2)
-    currency = models.CharField(max_length=3, default='USD') # Assuming USD for now
+    currency = models.CharField(max_length=3, default='USD')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
     description = models.TextField(blank=True, null=True)
 
@@ -203,7 +198,6 @@ class Transaction(models.Model):
 
     def __str__(self):
         return f"{self.get_type_display()} - {self.user.username} - {self.amount} {self.currency} ({self.get_status_display()})"
-
 # Signal to update cached balances (Optional but recommended for performance)
 # For simplicity in this comprehensive response, balance calculation will be done in the view.
 # If you want to use signals:

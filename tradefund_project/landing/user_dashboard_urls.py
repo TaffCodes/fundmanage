@@ -17,4 +17,5 @@ urlpatterns = [
     path('kyc/', views.user_kyc_view, name='kyc'),
     path('settings/notification-preferences/', views.user_notification_preferences_view, name='notification_preferences'),
     path('test-template/', views.test_template, name='test_template'),
+    path('reinvest/', views.user_reinvest_funds_view, name='reinvest_funds'),
 ]

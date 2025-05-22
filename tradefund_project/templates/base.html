@@ -7,7 +7,7 @@
     <title>{% block title %}FTMOTrade Fund | Professional Trading Investment Platform{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://kit.fontawesome.com/YOUR_KIT_ID.js" crossorigin="anonymous"></script> <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+    <script src="https://kit.fontawesome.com/ec7c03e120.js" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lazysizes/5.3.2/lazysizes.min.js" async></script>
     <script>
         tailwind.config = {
@@ -27,6 +27,15 @@
             }
         }
     </script>
+    <style>
+        body {
+            opacity: 0; /* Start with body invisible */
+            transition: opacity 0.3s ease-in-out; /* Smooth fade-in */
+        }
+        body.loaded {
+            opacity: 1; /* Class to make body visible */
+        }
+    </style>
     <style>
         body {
             font-family: 'Montserrat', sans-serif;
@@ -82,6 +91,12 @@
     {% endblock %}
 
     <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
+     <script>
+        window.addEventListener('load', function() {
+            // This event fires after all resources (stylesheets, images) are loaded
+            document.body.classList.add('loaded');
+        });
+    </script>
     <script>
         // Initialize Plyr (if you have video elements with class 'plyr__video-embed')
         // const player = new Plyr('.plyr__video-embed');

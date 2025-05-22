@@ -1,7 +1,8 @@
 from django.shortcuts import render, get_object_or_404, redirect
 # from django.contrib.auth.decorators import staff_member_required # For protection
 from django.contrib.auth.models import User
-from .models import UserProfile, Transaction, Trader, PortfolioSnapshot, Notification, PlatformAnnouncement, UserDocument, KYCProfile, DailyProfitLog
+from .models import UserProfile, Transaction, Trader, PortfolioSnapshot, Notification, PlatformAnnouncement, UserDocument, KYCProfile, DailyProfitLog, DailyLedgerEntry
+from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
 from .forms import UserProfileUpdateForm, NotificationPreferencesForm, KYCForm
 from django.contrib import messages
@@ -13,32 +14,9 @@ from django.conf import settings
 from django.urls import reverse
 from django.contrib.admin.sites import site as admin_site
 from decimal import Decimal
+from landing.utils import TIER_CONFIG, NETWORK_DAYS_IN_INVESTMENT_CYCLE, count_network_days
 
 
-
-# You can place this in landing/utils.py or at the top of landing/views.py
-
-TIER_CONFIG = {
-    'basic': {'price': 500.00, 'name': 'Basic Package', 'bi_weekly_roi_percent': 0.025},  # 2.5% every 2 weeks
-    'standard': {'price': 1500.00, 'name': 'Standard Package', 'bi_weekly_roi_percent': 0.035}, # 3.5% every 2 weeks
-    'premium': {'price': 2000.00, 'name': 'Premium Package', 'bi_weekly_roi_percent': 0.05},   # 5.0% every 2 weeks
-    '': {'price': 0.00, 'name': 'No Tier', 'bi_weekly_roi_percent': 0.00}, # For users with no tier
-}
-NETWORK_DAYS_IN_TWO_WEEKS = 10 # Typical (Mon-Fri for 2 weeks)
-
-def count_network_days(start_date, end_date):
-    """
-    Counts the number of network days (Mon-Fri) between start_date and end_date, inclusive of start.
-    """
-    if start_date > end_date:
-        return 0
-    network_days = 0
-    current_date = start_date
-    while current_date <= end_date:
-        if current_date.weekday() < 5: # Monday is 0 and Sunday is 6
-            network_days += 1
-        current_date += timedelta(days=1)
-    return network_days
 
 
 def home_page(request):
@@ -191,39 +169,73 @@ def user_dashboard_main(request):
     user = request.user
     today = timezone.now().date()
 
-    # Fetch latest snapshot for current balance
-    latest_snapshot = PortfolioSnapshot.objects.filter(user=user).order_by('-date').first()
-    current_balance = latest_snapshot.balance if latest_snapshot else profile.initial_investment_amount or Decimal(0.00)
+    # Current Balance from latest snapshot or initial if no snapshots yet for today
+    latest_snapshot = PortfolioSnapshot.objects.filter(user=user, date__lte=today).order_by('-date').first()
+    current_balance = latest_snapshot.balance if latest_snapshot else profile.initial_investment_amount or Decimal('0.00')
+    profile.current_balance_cached = current_balance # Update cache
 
-    # Fetch latest daily profit for "Last Trade Profit"
-    latest_profit_log = DailyProfitLog.objects.filter(user=user).order_by('-date').first()
-    last_trade_profit = latest_profit_log.profit_amount if latest_profit_log else Decimal(0.00)
-
-    # Calculate total earnings from DailyProfitLog
-    total_earnings = DailyProfitLog.objects.filter(
-        user=user, date__lte=today # Sum up to today
-    ).aggregate(total=Sum('profit_amount'))['total'] or Decimal(0.00)
+    # Last Trade Profit & Total Earnings from DailyLedgerEntry
+    latest_profit_log = DailyLedgerEntry.objects.filter(user=user, date__lte=today, user_profit_amount__gt=0).order_by('-date').first() # Get log with actual profit
+    last_trade_profit = latest_profit_log.user_profit_amount if latest_profit_log else Decimal('0.00')
     
-    # Update profile cached fields (optional, but good for quick access elsewhere if needed)
-    profile.current_balance_cached = current_balance
-    profile.total_earnings_cached = total_earnings
+    total_earnings = DailyLedgerEntry.objects.filter(user=user, date__lte=today).aggregate(total=Sum('user_profit_amount'))['total'] or Decimal('0.00')
+    profile.total_earnings_cached = total_earnings # Update cache
     profile.save(update_fields=['current_balance_cached', 'total_earnings_cached'])
 
-    user_share_percentage, _ = profile.get_profit_split_percentages()
-    gross_profit_for_user_share = Decimal(0.00)
+    user_share_percentage = profile.get_user_profit_split_percentage()
+    gross_profit_for_user_share = Decimal('0.00')
     if user_share_percentage > 0 and total_earnings > 0:
-        gross_profit_for_user_share = total_earnings / (Decimal(user_share_percentage) / Decimal(100.0))
+        gross_profit_for_user_share = total_earnings / (Decimal(user_share_percentage) / Decimal('100.0'))
+
+    # Reinvestment eligibility
+    eligible_for_reinvestment = False
+    current_cycle_end_date_approx = None
+    if profile.current_cycle_start_date:
+        # Calculate when roughly N network days pass
+        # This is a rough UI hint; the management command sets the precise is_awaiting_reinvestment_action flag
+        temp_date = profile.current_cycle_start_date
+        network_days_count = 0
+        calendar_days_count = 0
+        while network_days_count < NETWORK_DAYS_IN_INVESTMENT_CYCLE and calendar_days_count < 30: # Safety break
+            if temp_date.weekday() < 5:
+                network_days_count += 1
+            temp_date += timedelta(days=1)
+            calendar_days_count += 1
+        current_cycle_end_date_approx = profile.current_cycle_start_date + timedelta(days=calendar_days_count -1)
+
+        if profile.is_awaiting_reinvestment_action or (current_cycle_end_date_approx and today > current_cycle_end_date_approx) :
+            eligible_for_reinvestment = True
+            if not profile.is_awaiting_reinvestment_action: # If flag not yet set by nightly job, but date passed
+                # Note: this is for UI only, command is the source of truth for the flag
+                 pass
+    
+
+    print(f"User: {user.username}")
+    print(f"Profile initial investment: {profile.initial_investment_amount}")
+    print(f"Latest snapshot: {latest_snapshot.balance if latest_snapshot else 'No snapshot'}")
+    print(f"Calculated current_balance: {current_balance}")
+    print(f"Latest profit log: {latest_profit_log.user_profit_amount if latest_profit_log else 'No profit log with >0 profit'}")
+    print(f"Calculated last_trade_profit: {last_trade_profit}")
+    print(f"Calculated total_earnings: {total_earnings}")
+    print(f"User share percentage: {user_share_percentage}")
+    print(f"Calculated gross_profit_for_user_share: {gross_profit_for_user_share}")
+
 
     context = {
         'page_title': 'My Dashboard',
-        'current_balance': current_balance, # Directly from latest snapshot or initial
-        'total_earnings': total_earnings,   # Sum from DailyProfitLog
-        'last_trade_profit': last_trade_profit, # From latest DailyProfitLog
+        'current_balance': current_balance,
+        'total_earnings': total_earnings,
+        'last_trade_profit': last_trade_profit,
         'user_share_percentage': user_share_percentage,
         'gross_profit_for_user_share': gross_profit_for_user_share,
-        'can_upgrade': profile.selected_tier != 'premium',
+        'can_upgrade': profile.selected_tier != 'premium', # Assuming 'premium' is highest
+        'eligible_for_reinvestment': eligible_for_reinvestment,
+        'current_cycle_start_date': profile.current_cycle_start_date,
+        'current_cycle_end_date_approx': current_cycle_end_date_approx,
+        'days_in_cycle_config': NETWORK_DAYS_IN_INVESTMENT_CYCLE,
     }
     return render(request, 'user_dashboard/dashboard_main.html', context)
+
 
 @login_required
 def user_transaction_history(request):
@@ -279,7 +291,7 @@ def user_trader_details_view(request): # Renamed to avoid clash with a potential
 @login_required
 def portfolio_history_api(request):
     days_filter_str = request.GET.get('days', '30')
-    if days_filter_str == '14d': # For "2 Weeks"
+    if days_filter_str == '14d':
         days_to_show = 14
     else:
         try:
@@ -288,7 +300,7 @@ def portfolio_history_api(request):
             days_to_show = 30
 
     end_date = timezone.now().date()
-    start_date = end_date - timedelta(days=days_to_show -1)
+    start_date = end_date - timedelta(days=days_to_show -1) # Inclusive
 
     snapshots = PortfolioSnapshot.objects.filter(
         user=request.user,
@@ -299,21 +311,16 @@ def portfolio_history_api(request):
     labels = [snapshot.date.strftime('%Y-%m-%d') for snapshot in snapshots]
     data = [float(snapshot.balance) for snapshot in snapshots]
     
-    # Fallback dummy data if no snapshots exist for the period (useful for initial setup/testing)
+    # Fallback dummy data only if no snapshots AND in DEBUG mode
     if not snapshots and settings.DEBUG:
-        self.stdout.write(self.style.WARNING(f"No PortfolioSnapshot data for user {request.user.username} in range, serving dummy data.")) # Requires self for management command style
-        print(f"WARNING: No PortfolioSnapshot data for user {request.user.username} in range, serving dummy data.") # For runserver console
-        
+        print(f"WARNING: No PortfolioSnapshot data for user {request.user.username} in range {start_date} to {end_date}. Serving dummy data for chart.")
         dummy_labels = []
         dummy_data_points = []
         current_dummy_date = start_date
-        # Try to get a base balance from profile or default to a tier price
-        base_bal = request.user.profile.initial_investment_amount or TIER_CONFIG.get(request.user.profile.selected_tier, {}).get('price', 1000.00)
-        base_bal = float(base_bal)
+        base_bal = float(request.user.profile.initial_investment_amount or TIER_CONFIG.get(request.user.profile.selected_tier, {}).get('price', 1000.00))
 
         for i in range(days_to_show):
             dummy_labels.append(current_dummy_date.strftime('%Y-%m-%d'))
-            # Simple fluctuation for dummy data
             fluctuation = (i % 7 - 3) * (base_bal * 0.001) # Small daily fluctuation
             base_bal += fluctuation
             dummy_data_points.append(round(base_bal, 2))
@@ -450,3 +457,76 @@ def test_template(request):
         return HttpResponse(f"Template found and rendered. Content starts with: {content[:100]}...")
     except TemplateDoesNotExist:
         return HttpResponse("Template 'account/email_confirm.html' not found!")
+    
+@login_required
+def user_reinvest_funds_view(request):
+    profile = request.user.profile
+    today = timezone.now().date()
+
+    # Calculate when the current cycle should have ended
+    if not profile.current_cycle_start_date:
+        messages.error(request, "Investment cycle information is missing. Please contact support.")
+        return redirect('user_dashboard:home')
+
+    # Check if enough network days have passed in the current cycle
+    network_days_passed_in_cycle = count_network_days(profile.current_cycle_start_date, today - timedelta(days=1)) # up to yesterday
+
+    can_reinvest = False
+    if profile.is_awaiting_reinvestment_action: # If flag is set
+        can_reinvest = True
+    elif network_days_passed_in_cycle >= NETWORK_DAYS_IN_INVESTMENT_CYCLE:
+        # Cycle has just ended, flag might not be set if command hasn't run for today yet
+        # Or it means the user can proactively reinvest if the period is met
+        can_reinvest = True 
+
+
+    if request.method == 'POST':
+        if not can_reinvest:
+            messages.error(request, "Not yet eligible for reinvestment or action already taken.")
+            return redirect('user_dashboard:home')
+
+        latest_ledger_entry = DailyLedgerEntry.objects.filter(user=request.user).order_by('-date').first()
+        if not latest_ledger_entry:
+            messages.error(request, "Cannot determine current balance for reinvestment. Please contact support.")
+            return redirect('user_dashboard:home')
+
+        reinvestment_amount = latest_ledger_entry.user_closing_balance
+        
+        profile.current_cycle_principal = reinvestment_amount
+        profile.current_cycle_start_date = today
+        profile.is_awaiting_reinvestment_action = False # Action taken
+        profile.save()
+        
+        # Log this reinvestment action as a "new" start in ledger/snapshot
+        # (The management command will pick up from here for daily profits on the new principal)
+        # Create an initial ledger entry for the new cycle start day
+        DailyLedgerEntry.objects.update_or_create(
+            user=request.user,
+            date=today,
+            defaults={
+                'opening_gross_managed_capital': reinvestment_amount,
+                'daily_gross_profit': Decimal('0.00'), # Profit starts next network day
+                'user_profit_split_percentage': profile.get_user_profit_split_percentage(),
+                'user_profit_amount': Decimal('0.00'),
+                'platform_profit_amount': Decimal('0.00'),
+                'user_opening_balance': reinvestment_amount, # Opening balance for the new cycle is the reinvested amount
+                'user_closing_balance': reinvestment_amount  # Closing balance for today (reinvestment day) is same
+            }
+        )
+        PortfolioSnapshot.objects.update_or_create(
+            user=request.user,
+            date=today,
+            defaults={
+                'balance': reinvestment_amount,
+                'profit_loss_since_last': Decimal('0.00')
+            }
+        )
+
+        messages.success(request, f"Successfully reinvested ${reinvestment_amount:,.2f}. Your new investment cycle has started.")
+        return redirect('user_dashboard:home')
+
+    # This view is primarily for the POST action. 
+    # The button to trigger this should only be shown in dashboard_main.html if eligible.
+    # If accessed via GET, just redirect.
+    messages.info(request, "Reinvestment action should be triggered from your dashboard when available.")
+    return redirect('user_dashboard:home')

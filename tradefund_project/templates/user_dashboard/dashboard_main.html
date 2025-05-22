@@ -80,8 +80,8 @@
                 <div class="mt-2">
                     <p class="text-sm text-gray-600">Profit Split:</p>
                     <p class="text-sm font-semibold">
-                        <span class="text-secondary">{{ user.profile.get_profit_split_percentages.0 }}%</span> to you / 
-                        <span>{{ user.profile.get_profit_split_percentages.1 }}%</span> to trader/platform
+                        <span class="text-secondary">{{ user_share_percentage }}%</span> to you / 
+                        <span>{{ user.profile.get_user_profit_split_percentage.1 }}%</span> to trader/platform
                     </p>
                 </div>
                 {% if can_upgrade %}
@@ -96,6 +96,38 @@
                 <a href="{% url 'landing:home' %}#tiers" class="mt-4 inline-block bg-secondary text-primary px-4 py-2 rounded-md hover:bg-opacity-90 transition text-sm font-medium">
                     Choose a Tier
                 </a>
+            {% endif %}
+        </div>
+        <div class="bg-white p-6 shadow-lg rounded-lg mt-6">
+            <h2 class="text-xl font-semibold text-primary mb-4">Investment Cycle & Reinvestment</h2>
+            {% if user.profile.current_cycle_start_date %}
+                <p class="text-sm text-gray-600">
+                    Current cycle started: <span class="font-medium">{{ user.profile.current_cycle_start_date|date:"F j, Y" }}</span>.
+                </p>
+                {% if current_cycle_end_date_approx %}
+                <p class="text-sm text-gray-600">
+                    This cycle completes after approximately {{ days_in_cycle_config }} network days (around <span class="font-medium">{{ current_cycle_end_date_approx|date:"F j, Y" }}</span>).
+                </p>
+                {% endif %}
+
+                {% if eligible_for_reinvestment %}
+                    <p class="mt-3 text-sm font-semibold text-green-600">Your current investment cycle has completed or is eligible for renewal!</p>
+                    <form method="POST" action="{% url 'user_dashboard:reinvest_funds' %}" class="mt-3">
+                        {% csrf_token %}
+                        <button type="submit" 
+                                class="w-full bg-green-500 hover:bg-green-600 text-white font-medium py-3 px-4 rounded-md transition duration-150 ease-in-out"
+                                onclick="return confirm('Are you sure you want to reinvest your current balance of ${{ current_balance|floatformat:2|intcomma }} to start a new investment cycle?');">
+                            Reinvest ${{ current_balance|floatformat:2|intcomma }} and Start New Cycle
+                        </button>
+                    </form>
+                {% elif user.profile.is_awaiting_reinvestment_action %}
+                    <p class="mt-3 text-sm font-semibold text-yellow-600">Your investment cycle has ended. Please choose to reinvest to continue profit generation.</p>
+                    {# Button would appear here once the date check fully confirms eligibility, driven by is_awaiting_reinvestment_action #}
+                {% else %}
+                    <p class="mt-3 text-sm text-gray-500">The reinvestment option will be available once your current {{ days_in_cycle_config }}-network-day cycle completes.</p>
+                {% endif %}
+            {% else %}
+                <p class="text-sm text-gray-500">Investment cycle details will appear here once your first investment is active.</p>
             {% endif %}
         </div>
 
