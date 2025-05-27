@@ -1,7 +1,7 @@
 # landing/management/commands/record_daily_snapshots.py
 from django.core.management.base import BaseCommand, CommandError
 from django.contrib.auth.models import User
-from landing.models import UserProfile, PortfolioSnapshot, DailyLedgerEntry
+from landing.models import UserProfile, PortfolioSnapshot, DailyLedgerEntry, Transaction
 # Import constants from where you defined them (e.g., landing.utils or landing.models)
 from landing.utils import TIER_CONFIG, NETWORK_DAYS_IN_INVESTMENT_CYCLE, DAILY_GROSS_COMPOUNDING_RATE
 from django.utils import timezone
@@ -94,56 +94,66 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS("Daily recording process finished."))
 
-    def process_user_for_date(self, user, profile, current_date):
+    def process_user_for_date(self, user, profile, current_date): # Added profile as argument
         self.stdout.write(f"  Processing User: {user.username} for Date: {current_date}")
 
         is_network_day = current_date.weekday() < 5
         user_tier_share_percent = profile.get_user_profit_split_percentage()
 
-        # Determine opening balances for today
         if current_date == profile.investment_start_date:
-            # Very first day of any investment for this user
             user_opening_balance_today = profile.initial_investment_amount
             opening_gross_managed_capital_today = profile.initial_investment_amount
-        elif current_date == profile.current_cycle_start_date:
-            # First day of a new (or potentially the first if investment_start_date = current_cycle_start_date) cycle
-            # The base capital for this cycle was set at current_cycle_principal
-            # The user's opening balance is their balance from end of previous day, or current_cycle_principal if that was just updated
+        elif current_date == profile.current_cycle_start_date and current_date != profile.investment_start_date:
+            # This is the start of a new cycle *after* a reinvestment
             prev_day_ledger = DailyLedgerEntry.objects.filter(user=user, date=current_date - timedelta(days=1)).first()
-            user_opening_balance_today = prev_day_ledger.user_closing_balance if prev_day_ledger else profile.current_cycle_principal # Fallback if no prev day (e.g. after reinvestment)
+            user_opening_balance_today = prev_day_ledger.user_closing_balance if prev_day_ledger else profile.current_cycle_principal
             opening_gross_managed_capital_today = profile.current_cycle_principal
         else:
-            # Mid-cycle day
             prev_day_ledger = DailyLedgerEntry.objects.filter(user=user, date=current_date - timedelta(days=1)).first()
             if not prev_day_ledger:
-                self.stdout.write(self.style.WARNING(f"    User {user.username}, Date {current_date}: Missing previous day's ledger. Cannot calculate. May need to run for previous day or use --force_recalculate_from."))
-                # If this happens and it's unexpected, it means a day was missed and not backfilled.
-                # For a robust solution, this case needs careful handling, e.g. erroring or attempting to fill gap.
-                # For now, we'll skip if critical previous data is missing.
-                return 
-            user_opening_balance_today = prev_day_ledger.user_closing_balance
-            opening_gross_managed_capital_today = prev_day_ledger.opening_gross_managed_capital + prev_day_ledger.daily_gross_profit
+                self.stdout.write(self.style.WARNING(f"    User {user.username}, Date {current_date}: Missing previous day's ledger. Cannot calculate. This might be the first day of investment."))
+                # If it's truly the investment_start_date, this case should be handled by the first if block.
+                # If it's after investment_start_date but no previous ledger, that's an issue or it's current_cycle_start_date handled above.
+                # For robustness, if investment_start_date == current_date, this block should not be hit.
+                # Let's assume if it's investment_start_date, it's caught. If it's current_cycle_start_date, it's caught.
+                # If we are here, it means a day was missed and not backfilled, or an error.
+                # Fallback to cycle principal if prev_day_ledger is none and not a cycle start.
+                if current_date > profile.current_cycle_start_date: # Check if it's after the current cycle started
+                    self.stdout.write(self.style.WARNING(f"    User {user.username}, Date {current_date}: Missing previous day's ledger unexpectedly. Using cycle principal as base."))
+                    user_opening_balance_today = profile.current_cycle_principal 
+                    opening_gross_managed_capital_today = profile.current_cycle_principal
+                else: # Should not happen if logic is correct for start dates.
+                    self.stdout.write(self.style.ERROR(f"    User {user.username}, Date {current_date}: Critical error, previous ledger missing and not a recognized start date."))
+                    return # Stop processing this date for this user
+            else:
+                user_opening_balance_today = prev_day_ledger.user_closing_balance
+                opening_gross_managed_capital_today = prev_day_ledger.opening_gross_managed_capital + prev_day_ledger.daily_gross_profit
         
         daily_gross_profit_today = Decimal('0.00')
         user_profit_amount_today = Decimal('0.00')
         platform_profit_amount_today = Decimal('0.00')
 
-        # Check if current investment cycle has ended and awaiting user action
         network_days_into_current_cycle = count_network_days(profile.current_cycle_start_date, current_date)
         
-        if profile.is_awaiting_reinvestment_action and current_date > profile.current_cycle_start_date : # If cycle ended and user hasn't acted
+        if profile.is_awaiting_reinvestment_action and current_date > profile.current_cycle_start_date:
             self.stdout.write(f"    User {user.username}, Date {current_date}: Awaiting reinvestment. No profit generated.")
-            # Balance remains same as user_opening_balance_today
-        elif is_network_day:
+        elif is_network_day and network_days_into_current_cycle <= NETWORK_DAYS_IN_INVESTMENT_CYCLE : # Only generate profit within the cycle duration
             daily_gross_profit_today = opening_gross_managed_capital_today * DAILY_GROSS_COMPOUNDING_RATE
             user_profit_amount_today = daily_gross_profit_today * (user_tier_share_percent / Decimal('100.0'))
             platform_profit_amount_today = daily_gross_profit_today - user_profit_amount_today
-        # else (not a network day and not awaiting reinvestment): profits are 0, balance carries over.
-
+        
         user_closing_balance_today = user_opening_balance_today + user_profit_amount_today
 
-        # Create/Update DailyLedgerEntry
-        ledger_entry, created_ledger = DailyLedgerEntry.objects.update_or_create(
+        # Ensure rounding for monetary values
+        daily_gross_profit_today = daily_gross_profit_today.quantize(Decimal('0.01'))
+        user_profit_amount_today = user_profit_amount_today.quantize(Decimal('0.01'))
+        platform_profit_amount_today = platform_profit_amount_today.quantize(Decimal('0.01'))
+        user_closing_balance_today = user_closing_balance_today.quantize(Decimal('0.01'))
+        opening_gross_managed_capital_today = opening_gross_managed_capital_today.quantize(Decimal('0.01'))
+        user_opening_balance_today = user_opening_balance_today.quantize(Decimal('0.01'))
+
+
+        ledger_entry, _ = DailyLedgerEntry.objects.update_or_create(
             user=user, date=current_date,
             defaults={
                 'opening_gross_managed_capital': opening_gross_managed_capital_today,
@@ -155,19 +165,32 @@ class Command(BaseCommand):
                 'user_closing_balance': user_closing_balance_today,
             }
         )
-        # Create/Update PortfolioSnapshot
-        snapshot, created_snap = PortfolioSnapshot.objects.update_or_create(
+        PortfolioSnapshot.objects.update_or_create(
             user=user, date=current_date,
-            defaults={
-                'balance': user_closing_balance_today,
-                'profit_loss_since_last': user_profit_amount_today
-            }
+            defaults={'balance': user_closing_balance_today, 'profit_loss_since_last': user_profit_amount_today}
         )
         
-        self.stdout.write(f"    User {user.username}, Tier{profile.selected_tier} Date {current_date}: Gross Profit: {daily_gross_profit_today:.2f}, User Share: {user_profit_amount_today:.2f}, Closing Bal: {user_closing_balance_today:.2f}")
+        # Log Daily Simulated Profit as a Transaction if profit was made
+        if user_profit_amount_today > Decimal('0.00'):
+            Transaction.objects.update_or_create(
+                user=user,
+                type='DAILY_SIMULATED_PROFIT',
+                # Create a unique identifier for this specific daily profit transaction if needed,
+                # or rely on timestamp + user + type to be unique enough for get_or_create/update_or_create.
+                # For simplicity, if we run this once per day, type+date+user is unique for this transaction.
+                # We can use a specific timestamp for the transaction log for this day.
+                timestamp = timezone.make_aware(timezone.datetime.combine(current_date, timezone.datetime.min.time())) + timedelta(hours=23, minutes=59), # End of day
+                defaults={
+                    'amount': user_profit_amount_today,
+                    'status': 'COMPLETED',
+                    'description': f"Simulated daily profit. Closing balance: ${user_closing_balance_today:,.2f}",
+                    'currency': 'USD' # Assuming USD
+                }
+            )
+        
+        self.stdout.write(f"    User {user.username}, Date {current_date}: GrossP: {daily_gross_profit_today:.2f}, UserP: {user_profit_amount_today:.2f}, ClosingBal: {user_closing_balance_today:.2f}")
 
-        # Check if cycle just ended today
         if network_days_into_current_cycle >= NETWORK_DAYS_IN_INVESTMENT_CYCLE and not profile.is_awaiting_reinvestment_action:
             profile.is_awaiting_reinvestment_action = True
-            # profile.save(update_fields=['is_awaiting_reinvestment_action']) # Save will happen at end of user loop
-            self.stdout.write(self.style.SUCCESS(f"    User {user.username}: Investment cycle ending {current_date}. Awaiting reinvestment decision."))
+            # profile.save(update_fields=['is_awaiting_reinvestment_action']) # Saved at the end of user loop
+            self.stdout.write(self.style.SUCCESS(f"    User {user.username}: Investment cycle ending {current_date}. Flagged for reinvestment decision."))

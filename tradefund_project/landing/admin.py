@@ -10,7 +10,7 @@ class UserProfileInline(admin.StackedInline):
     model = UserProfile
     can_delete = False
     verbose_name_plural = 'Profile'
-    fk_name = 'user'
+    fk_name = 'user'   
     # Added new fields, making them readonly as they are cached/calculated
     fields = ('selected_tier', 'phone_number', 'current_balance_cached', 'total_earnings_cached')
     readonly_fields = ('current_balance_cached', 'total_earnings_cached')

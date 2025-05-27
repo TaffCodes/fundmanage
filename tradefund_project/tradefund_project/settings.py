@@ -148,14 +148,24 @@ ACCOUNT_SESSION_REMEMBER = True # Remembers user session by default
 # ACCOUNT_LOGIN_ATTEMPTS_TIMEOUT = 300 # 5 minutes
 
 # Email settings (for development, emails print to console)
+# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = 'smtp.gmail.com'
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
+# EMAIL_HOST_USER = 'mauyaroy@gmail.com'
+# EMAIL_HOST_PASSWORD = 'zmql bvsz jlib txof'
+# DEFAULT_FROM_EMAIL = 'mauyaroy@gmail.com'
+
+# Email settings for production (replace with your actual email settings)
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_HOST = 'mail.privateemail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'mauyaroy@gmail.com'
-EMAIL_HOST_PASSWORD = 'zmql bvsz jlib txof'
-DEFAULT_FROM_EMAIL = 'mauyaroy@gmail.com'
+EMAIL_HOST_USER = 'support@ftmotradefund.com'
+EMAIL_HOST_PASSWORD = 'iamnyaregar44'
+DEFAULT_FROM_EMAIL = 'support@ftmotradefund.com'
 
 LOGIN_REDIRECT_URL = '/u/'
 ACCOUNT_LOGOUT_REDIRECT_URL = '/'
