@@ -26,6 +26,8 @@ ALLOWED_HOSTS = [
 CSRF_TRUSTED_ORIGINS = [
     'https://fundmanage.onrender.com',
     'http://localhost:8000',
+    '0.0.0.0',
+    'localhost',
     'https://ftmotradefund.com',
 ]
 
