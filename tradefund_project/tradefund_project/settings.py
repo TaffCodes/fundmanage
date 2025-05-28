@@ -1,6 +1,9 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+from urllib.parse import urlparse
+
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -79,22 +82,16 @@ TEMPLATES = [
 WSGI_APPLICATION = 'tradefund_project.wsgi.application'
 
 
-import os
-from dotenv import load_dotenv
-from urllib.parse import urlparse
 
-load_dotenv()
+tmpPostgres = urlparse(os.getenv("DATABASE_URL"))
 
-# Parse the DATABASE_URL environment variable
-db_url = os.getenv('DATABASE_URL')
-db_url_parsed = urlparse(db_url)
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': db_url_parsed.path.replace('/', ''),
-        'USER': db_url_parsed.username,
-        'PASSWORD': db_url_parsed.password,
-        'HOST': db_url_parsed.hostname,
+        'NAME': tmpPostgres.path.replace('/', ''),
+        'USER': tmpPostgres.username,
+        'PASSWORD': tmpPostgres.password,
+        'HOST': tmpPostgres.hostname,
         'PORT': 5432,
     }
 }
