@@ -97,6 +97,7 @@ DATABASES = {
         'HOST': db_url_parsed.hostname,
         'PORT': 5432,
     }
+}
 
 
 # Password validation
