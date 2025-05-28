@@ -16,6 +16,7 @@ ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
     '0.0.0.0',
+    'ftmotradefund.com',
 ]
 
 
@@ -84,19 +85,18 @@ from urllib.parse import urlparse
 
 load_dotenv()
 
-# Replace the DATABASES section of your settings.py with this
-tmpPostgres = urlparse(os.getenv("DATABASE_URL"))
-
+# Parse the DATABASE_URL environment variable
+db_url = os.getenv('DATABASE_URL')
+db_url_parsed = urlparse(db_url)
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': tmpPostgres.path.replace('/', ''),
-        'USER': tmpPostgres.username,
-        'PASSWORD': tmpPostgres.password,
-        'HOST': tmpPostgres.hostname,
+        'NAME': db_url_parsed.path.replace('/', ''),
+        'USER': db_url_parsed.username,
+        'PASSWORD': db_url_parsed.password,
+        'HOST': db_url_parsed.hostname,
         'PORT': 5432,
     }
-}
 
 
 # Password validation
