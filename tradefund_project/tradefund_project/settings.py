@@ -11,7 +11,12 @@ DEBUG = True # Set to False in production
 
 PORT = int(os.environ.get('PORT', 8000))
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '0.0.0.0').split(',')
+ALLOWED_HOSTS = [
+    'fundmanage.onrender.com',
+    'localhost',
+    '127.0.0.1',
+    '0.0.0.0',
+]
 
 
 # Application definition
