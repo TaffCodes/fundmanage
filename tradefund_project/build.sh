@@ -2,49 +2,25 @@
 # Exit on error
 set -o errexit
 
-# Check if we're starting for the first time or restarting
-if [ ! -f "/tmp/app_initialized" ]; then
-    echo "First start - running full initialization..."
-    
-    pip install -r requirements.txt
-    
-    
-    
-    # Apply migrations
-    python manage.py migrate
-    
-    # Create default site
-    python manage.py shell -c "
-    from django.contrib.sites.models import Site
-    try:
-        site = Site.objects.get(id=1)
-        site.domain = '${RENDER_EXTERNAL_HOSTNAME:-fundmanage.onrender.com}'
-        site.name = 'TradeFund'
-        site.save()
-        print('Site updated successfully')
-    except Site.DoesNotExist:
-        Site.objects.create(id=1, domain='${RENDER_EXTERNAL_HOSTNAME:-fundmanage.onrender.com}', name='TradeFund')
-        print('Site created successfully')
-    except Exception as e:
-        print(f'Error handling site: {e}')
-    "
-    
-    # Collect static files
-    python manage.py collectstatic --no-input
-    
-    # Create cache table
-    python manage.py createcachetable
-    
-    # Create flag file to indicate initialization is done
-    touch /tmp/app_initialized
-    
-    echo "Initialization complete."
-else
-    echo "Restarting - skipping initialization steps..."
-    
-    # On restarts, we only need to ensure migrations are up to date
-    python manage.py migrate --noinput
-fi
+echo "Current directory: $(pwd)"
+echo "Listing files: $(ls -la)"
 
-# After initialization or restart, start the server
-exec gunicorn tradefund_project.wsgi:application
+# Install dependencies
+echo "Installing dependencies..."
+pip install -r requirements.txt
+
+# Apply migrations
+echo "Running migrations..."
+python manage.py migrate
+
+# Create default site - FIXED INDENTATION
+echo "Setting up site configuration..."
+python manage.py shell -c "from django.contrib.sites.models import Site; import os; domain = os.environ.get('RENDER_EXTERNAL_HOSTNAME', 'fundmanage.onrender.com'); try: site = Site.objects.get(id=1); site.domain = domain; site.name = 'TradeFund'; site.save(); print('Site updated successfully: ' + domain); except Site.DoesNotExist: Site.objects.create(id=1, domain=domain, name='TradeFund'); print('Site created successfully: ' + domain); except Exception as e: print(f'Error handling site: {e}');"
+
+# Collect static files
+echo "Collecting static files..."
+python manage.py collectstatic --no-input
+
+# Create cache table
+echo "Creating cache table..."
+python manage.py createcachetable
