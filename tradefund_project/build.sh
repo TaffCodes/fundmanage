@@ -13,9 +13,9 @@ pip install -r requirements.txt
 echo "Running migrations..."
 python manage.py migrate
 
-# Create default site - FIXED INDENTATION
-echo "Setting up site configuration..."
-python manage.py shell -c "from django.contrib.sites.models import Site; import os; domain = os.environ.get('RENDER_EXTERNAL_HOSTNAME', 'fundmanage.onrender.com'); try: site = Site.objects.get(id=1); site.domain = domain; site.name = 'TradeFund'; site.save(); print('Site updated successfully: ' + domain); except Site.DoesNotExist: Site.objects.create(id=1, domain=domain, name='TradeFund'); print('Site created successfully: ' + domain); except Exception as e: print(f'Error handling site: {e}');"
+# # Create default site - FIXED INDENTATION
+# echo "Setting up site configuration..."
+# python manage.py shell -c "from django.contrib.sites.models import Site; import os; domain = os.environ.get('RENDER_EXTERNAL_HOSTNAME', 'fundmanage.onrender.com'); try: site = Site.objects.get(id=1); site.domain = domain; site.name = 'TradeFund'; site.save(); print('Site updated successfully: ' + domain); except Site.DoesNotExist: Site.objects.create(id=1, domain=domain, name='TradeFund'); print('Site created successfully: ' + domain); except Exception as e: print(f'Error handling site: {e}');"
 
 # Collect static files
 echo "Collecting static files..."
