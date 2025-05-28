@@ -2,6 +2,8 @@
 # Exit on error
 set -o errexit
 
+pip install -r requirements.txt
+
 # Install Poetry dependencies
 pip install poetry
 poetry config virtualenvs.create false
