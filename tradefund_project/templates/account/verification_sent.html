@@ -1,0 +1,51 @@
+{% extends "account/base_account.html" %}
+{% load i18n %}
+{% load account %}
+
+{% block head_title %}{% trans "Verify Your Email Address" %}{% endblock head_title %}
+{% block page_title %}{% trans "Verify Your Email Address" %}{% endblock page_title %}
+
+{% block content %}
+<div class="bg-white shadow rounded-lg overflow-hidden">
+    <div class="px-6 py-8">
+        <div class="text-center mb-6">
+            <div class="inline-flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 mb-4">
+                <i class="fas fa-envelope text-2xl text-blue-600"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-800 mb-1">{% trans "Check Your Email" %}</h2>
+            <p class="text-gray-600">{% trans "We've sent you a verification email" %}</p>
+        </div>
+        
+        
+        
+        <div class="space-y-4">
+            <div class="bg-light rounded-lg p-4">
+                <h3 class="font-medium text-gray-800 mb-2">{% trans "What to do next:" %}</h3>
+                <ul class="list-disc pl-5 space-y-1 text-gray-600">
+                    <li>{% trans "Check your email inbox" %}</li>
+                    <li>{% trans "Click on the verification link in the email" %}</li>
+                    <li>{% trans "Return to complete your registration" %}</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="px-6 py-4 bg-gray-50 border-t border-gray-200">
+        <div class="text-center space-y-2">
+            <p class="text-sm text-gray-600">
+                {% trans "Didn't receive the email? Please check your spam folder or contact our support team." %}
+            </p>
+            <p class="text-sm">
+                <a href="#" class="font-medium text-secondary hover:text-accent">
+                    <i class="fas fa-headset mr-1"></i> {% trans "Contact Support" %}
+                </a>
+            </p>
+        </div>
+    </div>
+</div>
+
+<p class="mt-6 text-center text-sm text-gray-600">
+    {% url 'account_login' as login_url %}
+    {% blocktrans %}Already verified? <a href="{{ login_url }}" class="font-medium text-secondary hover:text-accent">Sign in</a>{% endblocktrans %}
+</p>
+{% endblock %}

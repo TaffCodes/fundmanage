@@ -18,11 +18,9 @@
                 </div>
                 <div class="flex items-center space-x-4">
                     {% if user.is_authenticated %}
-                        <span class="text-gray-300">Welcome, {% user_display user %}</span>
-                        <a href="{% url 'account_logout' %}" class="hover:text-secondary transition">Logout</a>
+                        <a href="{% url 'account_logout' %}" class="text-sm bg-secondary text-primary px-3 py-1 rounded hover:bg-opacity-80 transition" title="Logout"><i class="fas fa-sign-out-alt"></i> <span class="hidden md:inline">Logout</span></a>
                         {% else %}
-                        <a href="{% url 'account_login' %}" class="hover:text-secondary transition">Login</a>
-                        <a href="{% url 'account_signup' %}" class="bg-secondary hover:bg-opacity-80 text-primary font-medium px-4 py-2 rounded-md transition">Register</a>
+                        <a href="{% url 'account_login' %}" class="bg-secondary hover:bg-opacity-80 text-primary font-medium px-4 py-2 rounded-md transition">Login</a>
                     {% endif %}
                 </div>
                 <div class="md:hidden">

@@ -530,3 +530,23 @@ def user_reinvest_funds_view(request):
     # If accessed via GET, just redirect.
     messages.info(request, "Reinvestment action should be triggered from your dashboard when available.")
     return redirect('user_dashboard:home')
+
+
+
+
+# In views.py
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+
+@login_required
+def unread_notification_count(request):
+    """Return count of unread notifications as JSON."""
+    try:
+        # Replace with your actual notification model/query
+        count = request.user.notifications.filter(is_read=False).count()
+        return JsonResponse({'count': count})
+    except Exception as e:
+        # Log the error but return 0 as fallback
+        print(f"Error getting notifications: {e}")
+        return JsonResponse({'count': 0, 'error': str(e)})
+

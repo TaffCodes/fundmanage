@@ -254,11 +254,19 @@ class PlatformAnnouncement(models.Model):
         ('CRITICAL', 'Critical'),
         ('SUCCESS', 'Success'),
     ]
+    is_global = models.BooleanField(default=True, help_text="If True, announcement is for all users. If False, select specific users below.")
+    users = models.ManyToManyField(
+        User,
+        related_name='platform_announcements',
+        blank=True,
+        help_text="If is_global is False, select one or more users to target this announcement."
+    ),
     title = models.CharField(max_length=200)
     content = models.TextField()
     publish_date = models.DateTimeField(default=timezone.now)
     expiry_date = models.DateTimeField(null=True, blank=True, help_text="Optional: When this announcement should no longer be prominently displayed.")
     is_active = models.BooleanField(default=True, help_text="Controls if the announcement is currently displayed to users.")
+    is_read = models.BooleanField(default=False, help_text="Indicates if the user has read this announcement.")
     level = models.CharField(max_length=10, choices=LEVEL_CHOICES, default='INFO')
 
     class Meta:
@@ -331,3 +339,13 @@ def create_kyc_profile(sender, instance, created, **kwargs):
         KYCProfile.objects.get_or_create(user=instance.user)
 
 
+class AnnouncementView(models.Model):
+    """Tracks which platform announcements a user has viewed."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='announcement_views')
+    announcement = models.ForeignKey(PlatformAnnouncement, on_delete=models.CASCADE)
+    viewed_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ('user', 'announcement')
+        verbose_name = 'Announcement View'
+        verbose_name_plural = 'Announcement Views'

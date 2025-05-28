@@ -18,4 +18,5 @@ urlpatterns = [
     path('settings/notification-preferences/', views.user_notification_preferences_view, name='notification_preferences'),
     path('test-template/', views.test_template, name='test_template'),
     path('reinvest/', views.user_reinvest_funds_view, name='reinvest_funds'),
+    path('api/notifications/unread-count/', views.unread_notification_count, name='unread_notification_count'),
 ]

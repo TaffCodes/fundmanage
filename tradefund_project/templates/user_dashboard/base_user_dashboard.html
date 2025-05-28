@@ -18,8 +18,6 @@
                     <a href="{% url 'user_dashboard:home' %}" class="text-xl font-bold hover:text-secondary transition">FTMOTrade Fund</a>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <span class="text-sm text-gray-300 hidden md:inline">Welcome, {% user_display user %}!</span>
-                    <span class="text-sm text-gray-300 md:hidden">{% user_display user %}</span>
                     <a href="{% url 'landing:home' %}" class="text-sm hover:text-secondary transition" title="View Public Site"><i class="fas fa-home"></i> <span class="hidden md:inline">Site</span></a>
                     <a href="{% url 'account_logout' %}" class="text-sm bg-secondary text-primary px-3 py-1 rounded hover:bg-opacity-80 transition" title="Logout"><i class="fas fa-sign-out-alt"></i> <span class="hidden md:inline">Logout</span></a>
                 </div>
@@ -50,14 +48,23 @@
                         <li><a href="{% url 'user_dashboard:home' %}" class="block px-3 py-2 rounded hover:bg-light text-gray-700 hover:text-secondary transition {% if request.resolver_match.url_name == 'home' %}bg-light text-secondary font-medium{% endif %}"><i class="fas fa-tachometer-alt fa-fw mr-2"></i>Dashboard</a></li>
                         <li><a href="{% url 'user_dashboard:transactions' %}" class="block px-3 py-2 rounded hover:bg-light text-gray-700 hover:text-secondary transition {% if request.resolver_match.url_name == 'transactions' %}bg-light text-secondary font-medium{% endif %}"><i class="fas fa-exchange-alt fa-fw mr-2"></i>Transactions</a></li>
                         <li><a href="{% url 'user_dashboard:my_trader_details' %}" class="block px-3 py-2 rounded hover:bg-light text-gray-700 hover:text-secondary transition {% if request.resolver_match.view_name == 'user_dashboard:my_trader_details' %}bg-light text-secondary font-medium{% endif %}"><i class="fas fa-user-tie fa-fw mr-2"></i>My Trader</a></li>
-                        <li><a href="{% url 'user_dashboard:notifications' %}" class="block px-3 py-2 rounded hover:bg-light text-gray-700 hover:text-secondary transition {% if request.resolver_match.view_name == 'user_dashboard:notifications' %}bg-light text-secondary font-medium{% endif %}"><i class="fas fa-bell fa-fw mr-2"></i>Notifications <span id="unreadCountBadge" class="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full ml-1 hidden">0</span></a></li>
-                        <li><a href="{% url 'user_dashboard:documents' %}" class="block px-3 py-2 rounded hover:bg-light text-gray-700 hover:text-secondary transition {% if request.resolver_match.view_name == 'user_dashboard:documents' %}bg-light text-secondary font-medium{% endif %}"><i class="fas fa-file-alt fa-fw mr-2"></i>Documents</a></li>
+                        <li>
+                          <a href="{% url 'user_dashboard:notifications' %}" class="block px-3 py-2 rounded hover:bg-light text-gray-700 hover:text-secondary transition {% if request.resolver_match.view_name == 'user_dashboard:notifications' %}bg-light text-secondary font-medium{% endif %}">
+                            <i class="fas fa-bell fa-fw mr-2"></i>Notifications 
+                            {% if unread_notifications_count and unread_notifications_count > 0 %}
+                              <span id="unreadCountBadge" class="hidden bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full ml-1">{{ unread_notifications_count }}</span>
+                            {% else %}
+                              <span id="unreadCountBadge" class="hidden bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full ml-1">0</span>
+                            {% endif %}
+                          </a>
+                        </li>
+                        <li><a href="{% url 'user_dashboard:documents' %}" class="block px-3 py-2 rounded hover:bg-light text-gray-700 hover:text-secondary transition {% if request.resolver_match.url_name == 'my_documents' %}bg-light text-secondary font-medium{% endif %}"><i class="fas fa-file-alt fa-fw mr-2"></i>My Documents</a></li>
                         <li><a href="{% url 'user_dashboard:settings' %}" class="block px-3 py-2 rounded hover:bg-light text-gray-700 hover:text-secondary transition {% if request.resolver_match.url_name == 'settings' or request.resolver_match.url_name == 'profile_update' %}bg-light text-secondary font-medium{% endif %}"><i class="fas fa-cog fa-fw mr-2"></i>Settings</a></li>
                     </ul>
                     <hr class="my-4">
                     <h3 class="text-lg font-semibold text-primary mb-4 border-b pb-2">Support</h3>
                     <ul class="space-y-1">
-                        <li><a href="https://wa.me/YOUR_WAPP_NUMBER" target="_blank" class="block px-3 py-2 rounded hover:bg-light text-gray-700 hover:text-secondary transition"><i class="fab fa-whatsapp fa-fw mr-2 text-green-500"></i>WhatsApp Chat</a></li>
+                        <li><a href="https://wa.me/254110095735" target="_blank" class="block px-3 py-2 rounded hover:bg-light text-gray-700 hover:text-secondary transition"><i class="fab fa-whatsapp fa-fw mr-2 text-green-500"></i>WhatsApp Chat</a></li>
                         <li><a href="https://ig.me/m/YOUR_IG_USERNAME" target="_blank" class="block px-3 py-2 rounded hover:bg-light text-gray-700 hover:text-secondary transition"><i class="fab fa-instagram fa-fw mr-2 text-pink-500"></i>Instagram DM</a></li>
                         <li><button id="userDashboardChatbotBtn" class="w-full text-left block px-3 py-2 rounded hover:bg-light text-gray-700 hover:text-secondary transition"><i class="fas fa-robot fa-fw mr-2 text-blue-500"></i>AI Chatbot</button></li>
                     </ul>
@@ -160,7 +167,47 @@ document.addEventListener('DOMContentLoaded', function() {
             sidebar.classList.add('-translate-x-full');
         }
     });
-
+    // // Notification counter
+    // function checkForNewNotifications() {
+    //     fetch('/api/notifications/unread-count/')
+    //         .then(response => {
+    //             if (!response.ok) {
+    //                 throw new Error('Network response was not ok');
+    //             }
+    //             return response.json();
+    //         })
+    //         .then(data => {
+    //             const badge = document.getElementById('unreadCountBadge');
+    //             if (badge) {
+    //                 // Only update if we have data
+    //                 if (data && typeof data.count !== 'undefined') {
+    //                     if (data.count > 0) {
+    //                         badge.textContent = data.count;
+    //                         //  Added all notifications hidden tag
+    //                         badge.classList.add('hidden');
+    //                     } else {
+    //                         badge.textContent = '0';
+    //                         badge.classList.add('hidden');
+    //                     }
+    //                 }
+    //             }
+    //         })
+    //         .catch(error => {
+    //             console.error('Error checking notifications:', error);
+    //             // Don't modify the badge on error
+    //         });
+    // }
+    
+    // // Don't run immediately - this might be causing the flash
+    // setTimeout(function() {
+    //     // Only check if we already have server-side value
+    //     const badge = document.getElementById('unreadCountBadge');
+    //     const currentCount = parseInt(badge.textContent || '0');
+    //     // Only fetch from API if we need to (no server count or count is 0)
+    //     if (!currentCount) {
+    //         checkForNewNotifications();
+    //     }
+    // }, 3000); // Wait longer before first check
     // Chatbot functionality for user dashboard
     const chatbotBtnUser = document.getElementById('userDashboardChatbotBtn');
     const chatbotModalUser = document.getElementById('chatbotModalUser');
