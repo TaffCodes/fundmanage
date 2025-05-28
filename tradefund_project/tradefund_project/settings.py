@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+from urllib.parse import urlparse
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -73,18 +74,23 @@ TEMPLATES = [
 WSGI_APPLICATION = 'tradefund_project.wsgi.application'
 
 
-# Database
-# https://docs.djangoproject.com/en/5.0/ref/settings/#databases
-DATABASES = {
-    'default': {
-        'ENGINE': os.environ.get('DB_ENGINE', 'django.db.backends.sqlite3'),
-        'NAME': os.environ.get('DB_NAME', BASE_DIR / 'db.sqlite3'),
-        'USER': os.environ.get('DB_USER', ''),
-        'PASSWORD': os.environ.get('DB_PASSWORD', ''),
-        'HOST': os.environ.get('DB_HOST', ''),
-        'PORT': os.environ.get('DB_PORT', ''),
+# Parse the DATABASE_URL environment variable
+db_url = os.getenv('DATABASE_URL')
+
+if db_url:
+    # If DATABASE_URL is provided (e.g. in production)
+    db_url_parsed = urlparse(db_url)
+    
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': db_url_parsed.path.replace('/', ''),
+            'USER': db_url_parsed.username,
+            'PASSWORD': db_url_parsed.password,
+            'HOST': db_url_parsed.hostname,
+            'PORT': 5432,
+        }
     }
-}
 
 
 # Password validation
