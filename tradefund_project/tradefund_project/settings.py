@@ -11,7 +11,7 @@ DEBUG = True # Set to False in production
 
 PORT = int(os.environ.get('PORT', 8000))
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '0.0.0.0').split(',')
 
 
 # Application definition
