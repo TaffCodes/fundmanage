@@ -22,6 +22,25 @@ ALLOWED_HOSTS = [
     'ftmotradefund.com',
 ]
 
+# CSRF settings for production
+CSRF_TRUSTED_ORIGINS = [
+    'https://fundmanage.onrender.com',
+    'http://localhost:8000',
+    'https://ftmotradefund.com',
+]
+
+# # Make this dynamic based on allowed hosts
+# if os.environ.get('CSRF_TRUSTED_ORIGINS'):
+#     CSRF_TRUSTED_ORIGINS.extend(
+#         os.environ.get('CSRF_TRUSTED_ORIGINS').split(',')
+#     )
+# else:
+#     # Automatically add all allowed hosts with https://
+#     for host in ALLOWED_HOSTS:
+#         if host not in ['127.0.0.1', 'localhost']:
+#             if not host.startswith(('http://', 'https://')):
+#                 CSRF_TRUSTED_ORIGINS.append(f'https://{host}')
+
 
 # Application definition
 INSTALLED_APPS = [
