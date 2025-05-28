@@ -8,10 +8,7 @@ if [ ! -f "/tmp/app_initialized" ]; then
     
     pip install -r requirements.txt
     
-    # Install Poetry dependencies
-    pip install poetry
-    poetry config virtualenvs.create false
-    poetry install --no-interaction --no-ansi
+    
     
     # Apply migrations
     python manage.py migrate
