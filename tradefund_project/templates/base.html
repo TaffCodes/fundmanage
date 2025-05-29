@@ -61,7 +61,30 @@
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
-        @keyframes shimmer { 0% { background-position: -100% 0; } 100% { background-position: 200% 0; } }
+        
+        /* Enhanced shimmer for buttons and badges */
+        @keyframes shimmer { 
+            0% { background-position: -200% 0; } 
+            100% { background-position: 200% 0; } 
+        }
+        .animate-badge::before, .cta-shimmer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 100%);
+            transform: translateX(-100%);
+            animation: shimmer 3s infinite linear; /* Make shimmer smoother */
+            background-size: 200% 100%;
+            pointer-events: none; /* Allow clicks on the button */
+        }
+        .cta-shimmer {
+            position: relative;
+            overflow: hidden;
+        }
+
         .animate-on-scroll { opacity: 0; transition: all 0.6s ease-out; }
         .animate-on-scroll.fade-in.visible { opacity: 1; }
         .animate-on-scroll.slide-up { transform: translateY(30px); }
@@ -73,8 +96,8 @@
         .feature-icon { transition: transform 0.3s ease; }
         .hover-item:hover .feature-icon { transform: scale(1.2) rotate(10deg); }
         .animate-badge { position: relative; overflow: hidden; }
-        .animate-badge::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.8) 50%, rgba(255,255,255,0) 100%); transform: translateX(-100%); animation: shimmer 3s infinite; background-size: 200% 100%; }
         .pulse-on-hover:hover { animation: pulse 1s infinite; }
+        
         /* Message styling for allauth */
         .message-list { list-style: none; padding: 0; margin: 0 0 1rem 0; }
         .message-list li { padding: 0.75rem 1.25rem; margin-bottom: 1rem; border: 1px solid transparent; border-radius: 0.25rem; }
@@ -82,6 +105,39 @@
         .message-list li.error { color: #721c24; background-color: #f8d7da; border-color: #f5c6cb; }
         .message-list li.info { color: #0c5460; background-color: #d1ecf1; border-color: #bee5eb; }
         .message-list li.warning { color: #856404; background-color: #fff3cd; border-color: #ffeeba; }
+
+        /* Hero SVG Chart Animation */
+        .animated-chart-line {
+            stroke-dasharray: 1000; /* Approximate length of the path */
+            stroke-dashoffset: 1000;
+            animation: drawLine 3s ease-out forwards;
+            animation-delay: 0.5s; /* Start animation after page load fade */
+        }
+        @keyframes drawLine {
+            to {
+                stroke-dashoffset: 0;
+            }
+        }
+        .chart-point {
+            opacity: 0;
+            animation: fadeInPoint 0.5s ease-out forwards;
+        }
+        .chart-point:nth-child(1) { animation-delay: 1s; }
+        .chart-point:nth-child(2) { animation-delay: 2.8s; } /* Corresponds to end of line draw */
+
+        .data-box {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: slideUpFadeInBox 1s ease-out forwards;
+            animation-delay: 3s; /* After line and points */
+        }
+        @keyframes slideUpFadeInBox {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
     </style>
     {% block extra_head_css %}{% endblock %}
 </head>
@@ -93,21 +149,18 @@
     <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
      <script>
         window.addEventListener('load', function() {
-            // This event fires after all resources (stylesheets, images) are loaded
             document.body.classList.add('loaded');
         });
     </script>
     <script>
-        // Initialize Plyr (if you have video elements with class 'plyr__video-embed')
-        // const player = new Plyr('.plyr__video-embed');
-
-        // Scroll animation logic (from original landing page)
         document.addEventListener('DOMContentLoaded', function() {
             const animateElements = document.querySelectorAll('.animate-on-scroll');
+            const counterElements = document.querySelectorAll('.counter-up');
+
             function checkIfInView() {
                 animateElements.forEach(function(element) {
                     const elementTop = element.getBoundingClientRect().top;
-                    const elementVisible = 150;
+                    const elementVisible = 150; // How much of the element should be visible to trigger
                     const delay = element.getAttribute('data-delay') || 0;
                     if (elementTop < window.innerHeight - elementVisible) {
                         setTimeout(() => {
@@ -115,11 +168,73 @@
                         }, parseInt(delay));
                     }
                 });
+
+                counterElements.forEach(function(element) {
+                    const elementTop = element.getBoundingClientRect().top;
+                    const elementVisible = 50; // Trigger when top of element is 50px from bottom of viewport
+                    if (elementTop < window.innerHeight - elementVisible && !element.classList.contains('counted')) {
+                        animateCounter(element);
+                        element.classList.add('counted'); // Ensure animation runs only once
+                    }
+                });
             }
+
+            function animateCounter(element) {
+                const targetText = element.getAttribute('data-target');
+                const isCurrency = targetText.includes('$');
+                const isPercentage = targetText.includes('%');
+                
+                let targetVal;
+                let suffix = '';
+                let prefix = '';
+
+                if (isCurrency) {
+                    prefix = '$';
+                    targetVal = parseFloat(targetText.replace('$', '').replace('M+', '').replace('K+', ''));
+                    if (targetText.includes('M+')) suffix = 'M+';
+                    else if (targetText.includes('K+')) suffix = 'K+';
+                } else if (isPercentage) {
+                    suffix = '%';
+                    targetVal = parseFloat(targetText.replace('%', ''));
+                } else {
+                    targetVal = parseInt(targetText.replace('+', '').replace(/,/g, ''));
+                     if (targetText.includes('+')) suffix = '+';
+                }
+
+                let currentVal = 0;
+                const duration = 2000; // 2 seconds
+                const frameDuration = 1000 / 60; // 60 fps
+                const totalFrames = Math.round(duration / frameDuration);
+                const increment = targetVal / totalFrames;
+
+                let currentFrame = 0;
+                const timer = setInterval(() => {
+                    currentVal += increment;
+                    currentFrame++;
+
+                    if (currentFrame >= totalFrames) {
+                        clearInterval(timer);
+                        currentVal = targetVal; // Ensure it ends on the exact target
+                    }
+                    
+                    let displayVal;
+                    if (isPercentage) {
+                        displayVal = currentVal.toFixed(1); // For percentages like 28.7%
+                    } else if (isCurrency && (suffix === 'M+' || suffix === 'K+')) {
+                         displayVal = currentVal.toFixed(1); // For $12.5M+
+                    } 
+                    else {
+                        displayVal = Math.round(currentVal).toLocaleString(); // For whole numbers like 1,200+
+                    }
+                    element.innerText = prefix + displayVal + suffix;
+
+                }, frameDuration);
+            }
+
             checkIfInView();
             window.addEventListener('scroll', checkIfInView);
 
-            // Enhanced hover effects for tier-cards
+            // Enhanced hover effects for tier-cards (already good)
             document.querySelectorAll('.tier-card').forEach(card => {
                 card.addEventListener('mousemove', (e) => {
                     const rect = card.getBoundingClientRect();
@@ -127,18 +242,18 @@
                     const y = e.clientY - rect.top;
                     const centerX = rect.width / 2;
                     const centerY = rect.height / 2;
-                    const angleX = (y - centerY) / 30; // Adjust for sensitivity
-                    const angleY = (centerX - x) / 30; // Adjust for sensitivity
-                    card.style.transform = `perspective(1000px) rotateX(${angleX}deg) rotateY(${angleY}deg) translateY(-5px)`; // Reduced translateY
-                    card.style.transition = 'transform 0.1s linear'; // Faster transition for mousemove
+                    const angleX = (y - centerY) / 25; 
+                    const angleY = (centerX - x) / 25; 
+                    card.style.transform = `perspective(1200px) rotateX(${angleX}deg) rotateY(${angleY}deg) translateY(-8px) scale(1.02)`;
+                    card.style.transition = 'transform 0.1s linear';
                 });
                 card.addEventListener('mouseleave', () => {
-                    card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
-                    card.style.transition = 'transform 0.4s ease-out'; // Smoother transition back
+                    card.style.transform = 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px) scale(1)';
+                    card.style.transition = 'transform 0.4s ease-out';
                 });
             });
 
-            // Scroll to sections smoothly when clicking on nav links
+            // Scroll to sections smoothly
             document.querySelectorAll('a[href^="#"]').forEach(anchor => {
                 anchor.addEventListener('click', function (e) {
                     const href = this.getAttribute('href');
