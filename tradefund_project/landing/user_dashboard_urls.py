@@ -1,11 +1,14 @@
 # landing/user_dashboard_urls.py
 from django.urls import path
 from . import views # Assuming views.py contains your user dashboard views
+from django.conf import settings
+# from django.conf.urls.static import static
 
 app_name = 'user_dashboard'
 
 urlpatterns = [
     path('', views.user_dashboard_main, name='home'),
+    path('user_pay_for_tier/', views.user_pay_for_tier, name='user_pay_for_tier'),
     path('transactions/', views.user_transaction_history, name='transactions'),
     path('settings/', views.user_settings_page, name='settings'),
     path('settings/profile/', views.user_profile_update, name='profile_update'),

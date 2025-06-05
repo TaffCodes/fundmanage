@@ -97,6 +97,12 @@
                     Choose a Tier
                 </a>
             {% endif %}
+            <form method="POST" action="{% url 'user_dashboard:user_pay_for_tier' %}" class="mt-3">
+                    {% csrf_token %}
+                    <button type="submit" class="w-full bg-primary text-white px-4 py-2 rounded-md hover:bg-opacity-90 transition text-sm font-medium">
+                        Pay Now
+                    </button>
+            </form>
         </div>
         <div class="bg-white p-6 shadow-lg rounded-lg mt-6">
             <h2 class="text-xl font-semibold text-primary mb-4">Investment Cycle & Reinvestment</h2>

@@ -1,5 +1,7 @@
 # landing/dashboard_urls.py
 from django.urls import path
+from django.conf import settings
+from django.conf.urls.static import static
 from . import views # Assuming views.py contains your dashboard views
 
 app_name = 'dashboard' # Namespace for dashboard URLs
@@ -12,4 +14,4 @@ urlpatterns = [
     path('announcements/', views.staff_platform_announcements_list_view, name='announcement_list'),
     path('kyc_review/', views.staff_kyc_review_list_view, name='kyc_review_list'),
     path('user-documents/', views.staff_user_documents_overview_view, name='user_documents_overview'),
-]
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

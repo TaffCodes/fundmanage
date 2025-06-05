@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from .models import UserProfile, Transaction, Trader, PortfolioSnapshot, Notification, PlatformAnnouncement, UserDocument, KYCProfile, DailyProfitLog, DailyLedgerEntry
 from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
-from .forms import UserProfileUpdateForm, NotificationPreferencesForm, KYCForm
+from .forms import UserProfileUpdateForm, NotificationPreferencesForm, KYCForm, ProofOfPaymentForm
 from django.contrib import messages
 from django.db.models import Q, Sum, Count
 from datetime import datetime, timedelta
@@ -163,10 +163,13 @@ def staff_user_documents_overview_view(request):
 
 
 
+
+
+
 @login_required
 def user_dashboard_main(request):
-    profile = request.user.profile
     user = request.user
+    profile = get_object_or_404(UserProfile, user=user)
     today = timezone.now().date()
 
     # Current Balance from latest snapshot or initial if no snapshots yet for today
@@ -235,6 +238,53 @@ def user_dashboard_main(request):
         'days_in_cycle_config': NETWORK_DAYS_IN_INVESTMENT_CYCLE,
     }
     return render(request, 'user_dashboard/dashboard_main.html', context)
+
+
+
+
+@login_required
+def user_pay_for_tier(request):
+    user = request.user
+    profile = get_object_or_404(UserProfile, user=user)
+    
+    # Check if user already has an active investment.
+    if profile.investment_start_date:
+        messages.info(request, "You already have an active investment. To upgrade or make further investments, please contact support.")
+        return redirect('user_dashboard:home')
+
+    selected_tier_key = profile.selected_tier
+    tier_details = TIER_CONFIG.get(selected_tier_key) # No default needed due to check above
+    tier_name = tier_details['name']
+    tier_amount = tier_details['price']
+
+    # Define your payment instructions here
+    # It's good practice to make these configurable, e.g., via Django settings or a dedicated model
+    payment_instructions = {
+        "bank_name": "Global Trust Bank",
+        "account_name": "TradeFund Investments LLC",
+        "account_number": "123-456-7890",
+        "swift_code": "GTBXXXX",
+        "reference": f"TF-INV-{user.id}-{selected_tier_key.upper()}", # Unique reference
+        "amount_due": f"${tier_amount:,.2f}"
+    }
+    
+    # Define the email address for users to send their proof of payment
+    # This should ideally be in your Django settings
+    proof_submission_email = getattr(settings, 'PAYMENT_PROOF_EMAIL', 'support@ftmotradefund.com')
+
+    # No form is processed here. We are only displaying information.
+    # No Transaction object is created at this stage. Admins will create it upon verifying emailed proof.
+    # No automatic notification to staff is created from this view for form submission.
+
+    context = {
+        'page_title': f'Payment Instructions for {tier_name}',
+        'tier_name': tier_name,
+        'tier_amount': tier_amount,
+        'payment_instructions': payment_instructions,
+        'proof_submission_email': proof_submission_email,
+        'profile': profile, # Kept for consistency if base template uses it
+    }
+    return render(request, 'user_dashboard/user_submit_payment_proof.html', context)
 
 
 @login_required

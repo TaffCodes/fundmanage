@@ -5,7 +5,6 @@ TIER_CONFIG = {
     'basic': {'price': Decimal('500.00'), 'name': 'Basic Package', 'user_profit_share_percent': Decimal('30.0')},
     'standard': {'price': Decimal('1500.00'), 'name': 'Standard Package', 'user_profit_share_percent': Decimal('50.0')},
     'premium': {'price': Decimal('2000.00'), 'name': 'Premium Package', 'user_profit_share_percent': Decimal('70.0')},
-    '': {'price': Decimal('0.00'), 'name': 'No Tier', 'user_profit_share_percent': Decimal('0.0')},
     None: {'price': Decimal('0.00'), 'name': 'No Tier', 'user_profit_share_percent': Decimal('0.0')},
 }
 

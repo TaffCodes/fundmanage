@@ -13,6 +13,10 @@ from datetime import timedelta
 from .utils import TIER_CONFIG, BI_WEEKLY_GROSS_TARGET_ROI, NETWORK_DAYS_IN_INVESTMENT_CYCLE, DAILY_GROSS_COMPOUNDING_RATE
 
 
+def user_directory_path(instance, filename):
+    # file will be uploaded to MEDIA_ROOT/user_<id>/<filename>
+    return f'user_{instance.user.id}/proof_of_payments/{filename}'
+
 
 class Trader(models.Model):
     RISK_LEVEL_CHOICES = [
@@ -51,7 +55,6 @@ class Trader(models.Model):
 
 class UserProfile(models.Model):
     TIER_CHOICES = [
-        ('', 'No tier selected'),
         ('basic', 'Basic Package'),
         ('standard', 'Standard Package'),
         ('premium', 'Premium Package'),
@@ -171,16 +174,19 @@ class Transaction(models.Model):
         ('WITHDRAWAL', 'Withdrawal'),
         ('PROFIT_PAYOUT', 'Profit Payout'), # Actual payout by platform
         ('FEE', 'Fee'),
-        ('INITIAL_INVESTMENT', 'Initial Investment'), # Changed from 'INVESTMENT' for clarity
+        ('INITIAL_INVESTMENT', 'Initial Activation'), # Changed from 'INVESTMENT' for clarity
         ('DAILY_SIMULATED_PROFIT', 'Daily Simulated Profit'), # New
         ('REINVESTMENT_START', 'Reinvestment Cycle Start'), # New
+        ('CYCLE_CLOSEOUT', 'Cycle Closeout Adjustment'),
+        ('PENDING_INVESTMENT', 'Pending Investment Deposit'),
     ]
     STATUS_CHOICES = [
         ('PENDING', 'Pending'),
-        ('PROCESSING', 'Processing'),
         ('COMPLETED', 'Completed'),
         ('FAILED', 'Failed'),
         ('CANCELLED', 'Cancelled'),
+        ('PENDING_APPROVAL', 'Pending Approval'), # New status
+        ('REJECTED', 'Rejected'), 
     ]
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='transactions')
@@ -192,6 +198,9 @@ class Transaction(models.Model):
     currency = models.CharField(max_length=3, default='USD')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
     description = models.TextField(blank=True, null=True)
+    transaction_id = models.CharField(max_length=100, blank=True, null=True, unique=True) # For external payment gateways
+    proof_of_payment = models.FileField(upload_to=user_directory_path, blank=True, null=True) # New field
+    related_tier_key = models.CharField(max_length=50, blank=True, null=True) # To store which tier this payment is for
 
     class Meta:
         ordering = ['-timestamp']
@@ -233,6 +242,7 @@ class Notification(models.Model):
         ('SECURITY', 'Security Alert'),
         ('TIER_CHANGE', 'Tier Change'),
         ('GENERAL', 'General Info'),
+        ('PAYMENT_SUBMITTED', 'Payment Submitted'),
     ]
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
     message = models.TextField()

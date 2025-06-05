@@ -105,16 +105,34 @@ WSGI_APPLICATION = 'tradefund_project.wsgi.application'
 
 tmpPostgres = urlparse(os.getenv("DATABASE_URL"))
 
+# Fix the bytes/string incompatibility
+db_name = tmpPostgres.path
+if isinstance(db_name, bytes):
+    db_name = db_name.decode('utf-8')
+if db_name.startswith('/'):
+    db_name = db_name[1:]
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': tmpPostgres.path.replace('/', ''),
+        'NAME': db_name,
         'USER': tmpPostgres.username,
         'PASSWORD': tmpPostgres.password,
         'HOST': tmpPostgres.hostname,
         'PORT': 5432,
     }
 }
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'tradefund',
+#         'USER': 'postgres',
+#         'PASSWORD':'123345.',
+#         'HOST': 'localhost',
+#         'PORT': 5432,
+#     }
+# }
+
 
 
 # Password validation
